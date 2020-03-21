@@ -65,8 +65,8 @@ def add_row_to_population_lookup(
 
 #%% Set some params...
 #primary parameters for script...
+input_directory_name_corona_cases = 'csse_covid_19_data/csse_covid_19_time_series'
 output_final_directory = 'output'
-output_qc_directory = 'qc'
 run_nearest_city_loop = False
 cases_column_order = [
     'cases_date',
@@ -81,17 +81,16 @@ cases_column_order = [
     ]
 
 #secondary parameters related to QA
+output_qc_directory = 'qc'
 num_to_lookup_long_and_lats = None
 num_to_lookup_case_coordinates = None
 run_script_printouts_and_write_qc_files = False
-input_directory_name_corona_case = 'csse_covid_19_data/csse_covid_19_time_series'
-output_file_name_corona_case = 'corona_daily_long_lat.csv'
 
 
 #%% This is where we read the daily case files and melt them
 input_file_name_corona_case_confirmed = "time_series_19-covid-Confirmed"
 corona_daily_by_country_confirmed = csv_contents_to_pandas_df(
-    directory_name=input_directory_name_corona_case, 
+    directory_name=input_directory_name_corona_cases, 
     file_name=input_file_name_corona_case_confirmed)
 
 #add an id column
@@ -121,7 +120,7 @@ if run_script_printouts_and_write_qc_files == True:
 #%% This is where we read the daily death case files and melt them
 input_file_name_corona_case_deaths = "time_series_19-covid-Deaths"
 corona_daily_by_country_deaths = csv_contents_to_pandas_df(
-    directory_name=input_directory_name_corona_case,
+    directory_name=input_directory_name_corona_cases,
     file_name=input_file_name_corona_case_deaths)
 
 #add an id column
@@ -158,7 +157,7 @@ if run_script_printouts_and_write_qc_files == True:
 input_file_name_corona_case_recovered = "time_series_19-covid-Recovered"
 
 corona_daily_by_country_recovered = csv_contents_to_pandas_df(
-    directory_name=input_directory_name_corona_case,
+    directory_name=input_directory_name_corona_cases,
     file_name=input_file_name_corona_case_recovered)
 
 #add an id column
@@ -307,19 +306,18 @@ if run_script_printouts_and_write_qc_files == True:
 #%%aggregate for row reduction
 corona_daily_by_country_totals_and_populations_aggregated = corona_daily_by_country_totals_and_populations.groupby([
     'cases_date',
-    'cases_Country/Region',
-    'cases_Province/State',
+    'cases_max_date',
     'cases_Lat',
     'cases_Long',
     'cases_case_lat_long_id',
+    'cases_Country/Region',
+    'cases_Province/State',
     'country_populations_pop2020',
-    'country_populations_dropdownData',
     'country_populations_area',
     'country_populations_Density',
     'country_populations_GrowthRate',
     'country_populations_worldPercentage_updated',
-    'country_populations_rank_updated',
-    'cases_max_date'
+    'country_populations_rank_updated'
 ]).agg(recovered=('recovered', 'sum'),
        confirmed=('confirmed', 'sum'),
        deaths=('deaths', 'sum')
@@ -358,3 +356,4 @@ corona_daily_by_country_totals_and_populations_aggregated.to_csv(
     index=False)
 
 #%%
+print('all done here...')
