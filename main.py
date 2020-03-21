@@ -64,11 +64,10 @@ def add_row_to_population_lookup(
 
 
 #%% Set some params...
-#determines how many items to look up...
+#primary parameters for script...
+output_final_directory = 'output'
+output_qc_directory = 'qc'
 run_nearest_city_loop = False
-num_to_lookup_long_and_lats = None
-num_to_lookup_case_coordinates = None
-output_directory = 'output'
 cases_column_order = [
     'cases_date',
     'cases_Province/State', 
@@ -81,6 +80,10 @@ cases_column_order = [
     'recovered',
     ]
 
+#secondary parameters related to QA
+num_to_lookup_long_and_lats = None
+num_to_lookup_case_coordinates = None
+run_script_printouts_and_write_qc_files = False
 input_directory_name_corona_case = 'csse_covid_19_data/csse_covid_19_time_series'
 output_file_name_corona_case = 'corona_daily_long_lat.csv'
 
@@ -110,8 +113,9 @@ corona_daily_by_country_confirmed_melt = corona_daily_by_country_confirmed_melt[
     cases_column_order]
 
 #print details about the file read in.
-print('corona_daily_by_country_confirmed_melt', 'dtypes', '\n')
-print(corona_daily_by_country_confirmed_melt.dtypes)
+if run_script_printouts_and_write_qc_files == True:
+    print('corona_daily_by_country_confirmed_melt', 'dtypes', '\n')
+    print(corona_daily_by_country_confirmed_melt.dtypes)
 
 
 #%% This is where we read the daily death case files and melt them
@@ -145,8 +149,9 @@ corona_daily_by_country_deaths_melt = corona_daily_by_country_deaths_melt[
     cases_column_order]
 
 #print details about the file read in.
-print('corona_daily_by_country_deaths_melt', 'dtypes', '\n')
-print(corona_daily_by_country_deaths_melt.dtypes)
+if run_script_printouts_and_write_qc_files == True:
+    print('corona_daily_by_country_deaths_melt', 'dtypes', '\n')
+    print(corona_daily_by_country_deaths_melt.dtypes)
 
 
 #%% This is where we read the daily recovered case files and melt them
@@ -177,8 +182,9 @@ corona_daily_by_country_recovered_melt = corona_daily_by_country_recovered_melt[
     cases_column_order]
 
 #print details about the file read in.
-print('corona_daily_by_country_recovered_melt', 'dtypes', '\n')
-print(corona_daily_by_country_recovered_melt.dtypes)
+if run_script_printouts_and_write_qc_files == True:
+    print('corona_daily_by_country_recovered_melt', 'dtypes', '\n')
+    print(corona_daily_by_country_recovered_melt.dtypes)
 
 
 #%% concatenate the DataFrames
@@ -194,13 +200,15 @@ corona_daily_by_country_totals = corona_daily_by_country_totals[
     corona_daily_by_country_totals['total_observations'] > 0]
 
 #print details about the file to be written to sv.
-print('corona_daily_by_country_totals', 'dtypes', '\n')
-print(corona_daily_by_country_totals.dtypes)
+if run_script_printouts_and_write_qc_files == True:
+    print('corona_daily_by_country_totals', 'dtypes', '\n')
+    print(corona_daily_by_country_totals.dtypes)
 
-#Write the file to csv
-corona_daily_by_country_totals.to_csv(
-    output_directory + '/' + 'corona_cases_daily_with_populations_qc1_postunion.csv', 
-    index=False)
+#Write the qc file to csv
+if run_script_printouts_and_write_qc_files == True:
+    corona_daily_by_country_totals.to_csv(
+        output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc1_postunion.csv', 
+        index=False)
 
 
 #%% This is where we read our population file and merge it with the corona cases
@@ -238,8 +246,9 @@ population_lookup_adjusted = population_lookup_adjusted.replace(
     {'country_populations_Country': temp_country_replacement_list})
 
 #print details about the file to be written to sv.
-print('population_lookup_adjusted', 'dtypes', '\n')
-print(population_lookup_adjusted.dtypes)
+if run_script_printouts_and_write_qc_files == True:
+    print('population_lookup_adjusted', 'dtypes', '\n')
+    print(population_lookup_adjusted.dtypes)
 
 
 #%% Merge the daily case totals and country population files and write to csv
@@ -258,13 +267,15 @@ corona_daily_by_country_totals_and_populations['cases_max_date'] = max_date
 
 #Write the file to csv
 # TODO This is a temporary step
-corona_daily_by_country_totals_and_populations.to_csv(
-    output_directory + '/' + 'corona_cases_daily_with_populations_qc2_preaggregate.csv', 
-    index=False)
+if run_script_printouts_and_write_qc_files == True:
+    corona_daily_by_country_totals_and_populations.to_csv(
+        output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc2_preaggregate.csv', 
+        index=False)
 
 #print details about the file to be written to sv.
-print('corona_daily_by_country_totals_and_populations', 'dtypes', '\n')
-print(corona_daily_by_country_totals_and_populations.dtypes)
+if run_script_printouts_and_write_qc_files == True:
+    print('corona_daily_by_country_totals_and_populations', 'dtypes', '\n')
+    print(corona_daily_by_country_totals_and_populations.dtypes)
 
 
 #%% Identify columns with nulls, and Fill 'NA', 'missing' or 'zero'
@@ -287,9 +298,10 @@ corona_daily_by_country_totals_and_populations[temp_columns_with_nulls_float] = 
 
 #Write the file to csv
 # TODO This is a temporary step
-corona_daily_by_country_totals_and_populations.to_csv(
-    output_directory + '/' + 'corona_cases_daily_with_populations_qc3_preaggregate_filled_nas.csv',
-    index=False)
+if run_script_printouts_and_write_qc_files == True:
+    corona_daily_by_country_totals_and_populations.to_csv(
+        output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc3_preaggregate_filled_nas.csv',
+        index=False)
 
 
 #%%aggregate for row reduction
@@ -315,9 +327,10 @@ corona_daily_by_country_totals_and_populations_aggregated = corona_daily_by_coun
 
 #Write the file to csv
 # TODO This is a temporary step
-corona_daily_by_country_totals_and_populations_aggregated.to_csv(
-    output_directory + '/' + 'corona_cases_daily_with_populations_qc4_postaggregate.csv', 
-    index=False)
+if run_script_printouts_and_write_qc_files == True:
+    corona_daily_by_country_totals_and_populations_aggregated.to_csv(
+        output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc4_postaggregate.csv', 
+        index=False)
 
 
 #%% Add a flag for when total confirmed cases reached N for each country
@@ -334,13 +347,14 @@ corona_daily_by_country_totals_and_populations_aggregated['10_or_more_confirmed_
 
 #Write the file to csv
 # TODO This is a temporary step
-corona_daily_by_country_totals_and_populations_aggregated.to_csv(
-    output_directory + '/' + 'corona_cases_daily_with_populations_qc5_postaggregate_with_flags.csv',
-    index=False)
+if run_script_printouts_and_write_qc_files == True:
+    corona_daily_by_country_totals_and_populations_aggregated.to_csv(
+        output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc5_postaggregate_with_flags.csv',
+        index=False)
 
-#Write the aggregated dataframe to csv
+#%%Write the final aggregated dataframe to csv
 corona_daily_by_country_totals_and_populations_aggregated.to_csv(
-    output_directory + '/' + output_file_name_corona_case_with_meta_and_populations_and_flags,
+    output_final_directory + '/' + output_file_name_corona_case_with_meta_and_populations_and_flags,
     index=False)
 
 #%%
