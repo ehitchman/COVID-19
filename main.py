@@ -59,21 +59,142 @@ def add_row_to_population_lookup(
     ]).reset_index(drop=True)
 
     #Calculate world percentage
-    temp_concatenated_df['country_populations_worldPercentage_updated'] = (temp_concatenated_df['country_populations_pop2020'] / \
+    temp_concatenated_df['country_populations_worldPercentage'] = (temp_concatenated_df['country_populations_pop2020'] / \
         temp_concatenated_df['country_populations_pop2020'].sum()).astype(float)
 
     #Calculate the updated rank
-    temp_concatenated_df['country_populations_rank_updated'] = temp_concatenated_df.country_populations_pop2020.rank(
+    temp_concatenated_df['country_populations_rank'] = temp_concatenated_df.country_populations_pop2020.rank(
         ascending=False, method='dense').astype(int)
 
     return temp_concatenated_df
+
+
+def update_country_name_in_population_lookup(
+    population_lookup_df, 
+    original_to_new_country_name_and_code_df):
+
+    print('------------------------------------------------------')
+    print("this is population_lookup_df")
+    print(population_lookup_df, '\n')
+    print('------------------------------------------------------')
+    print("this is original_to_new_country_name_and_code_df")
+    print(original_to_new_country_name_and_code_df, '\n')
+
+    final_df = population_lookup_df.merge(
+        original_to_new_country_name_and_code_df,
+        left_on='country_populations_Country',
+        right_on='orig_countryName',
+        how="left")
+
+    print('------------------------------------------------------')
+    print('\n', 'this is final DF after the merge...')
+    print(final_df)
+
+    #Here is a statement similar to coalesce which prioritizes the lookup value,
+    # and if no lookup value is found, the original value is used in its place
+    final_df['country_populations_countryName_final'] = final_df[['orig_countryName', 'upd_countryName', 'country_populations_Country']].apply(
+        lambda x: x['upd_countryName'] if pd.isnull(x[
+            'orig_countryName']) else x['country_populations_Country'], axis=1)
+
+    final_df['country_populations_countryCode_final'] = final_df[['orig_countryName', 'upd_countryCode', 'country_populations_cca2']].apply(
+        lambda x: x['upd_countryCode'] if pd.isnull(x[
+            'orig_countryName']) else x['country_populations_cca2'], axis=1)
+
+    #Aggregate adjusted population table to ensure there are no duplicates
+    final_df_aggregated = final_df.groupby([
+        'country_populations_countryCode_final',
+        'country_populations_countryName_final'
+    ]).agg(country_populations_pop2020=('country_populations_pop2020', 'sum'),
+           country_populations_area=('country_populations_area', 'sum')
+           ).reset_index()
+
+    print('------------------------------------------------------')
+    print('\n', 'this is final DF after the aggregation...')
+    print(final_df_aggregated)
+
+    #calculate density
+    final_df_aggregated['country_populations_Density'] = final_df_aggregated['country_populations_pop2020'] / final_df_aggregated['country_populations_area']
+
+    #Calculate world percentage
+    final_df_aggregated['country_populations_worldPercentage'] = (final_df_aggregated['country_populations_pop2020'] / final_df_aggregated['country_populations_pop2020'].sum()).astype(float)
+
+    #Calculate the updated rank
+    final_df_aggregated['country_populations_rank'] = final_df_aggregated.country_populations_pop2020.rank(
+        ascending=False, 
+        method='dense').astype(int)
+
+    print('------------------------------------------------------')
+    print('this is final DF after the updated calculations...')
+    print(final_df_aggregated)
+
+    return final_df_aggregated
+
+
+def add_row_to_continent_lookup(
+    continent_lookup_df, 
+    CountryName, 
+    CapitalName, 
+    CaptialLatitude, 
+    CapitalLongitude, 
+    CountryCode, 
+    ContinentName):
+    '''Function to add a row to an existing population lookup table.  First,
+        create the data frame, then do any calculations, say world percentage,
+        rank, population density, then create the output df which is the
+        original along with the added row'''
+
+    #Creat the df to add to the original file
+    temp_df_row_to_add = pd.DataFrame({
+        'continent_CountryName': [CountryName],
+        'continent_CapitalName': [CapitalName],
+        'continent_CaptialLatitude':  [CaptialLatitude],
+        'continent_CapitalLongitude': [CapitalLongitude],
+        'continent_CountryCode': [CountryCode],
+        'continent_ContinentName': [ContinentName]
+        })
+
+    #concatenate dfs
+    temp_concatenated_df = pd.concat([
+        continent_lookup_df,
+        temp_df_row_to_add
+    ]).reset_index(drop=True)
+
+    return temp_concatenated_df
+
+
+def download_csv_from_kaggle(dataset, filename, path, force):
+    api = KaggleApi()
+    api.authenticate()
+
+    print('filename being checked:', filename)
+    filename = filename.replace('.csv.csv', '').replace('.csv','') + '.csv'
+
+    print('directory being checked:', path)    
+    print('filename being checked', filename)
+
+    temp_dataset = api.dataset_download_file(
+        dataset = dataset, 
+        file_name = filename,
+        path=path,
+        force=force, 
+        quiet=False)
+
+    if temp_dataset == False:
+        temp_dataset = csv_contents_to_pandas_df(
+            directory_name=path, file_name=filename)
+
+    return temp_dataset
 
 
 #%% Set some params...
 #primary parameters for script...
 input_directory_name_corona_cases = 'csse_covid_19_data/csse_covid_19_time_series'
 output_final_directory = 'output'
+population_data_directory = 'country_population_data'
+country_to_continent_file = 'concap.csv'
+country_to_continent_directory = 'country_to_continent_mapping'
 run_nearest_city_loop = False
+
 cases_column_order = [
     'cases_date',
     'cases_Province/State', 
