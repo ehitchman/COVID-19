@@ -358,28 +358,119 @@ population_data = add_row_to_population_lookup(
     GrowthRate = 0,         
 )
 
-#Fix some naming disputes for country names to asist with the join
-temp_country_replacement_list = {
-    'United States': 'US',
-    "Macedonia": "North Macedonia",
-    "South Korea": 'Korea, South',
-    "Czech Republic": 'Czechia',
-    "DR Congo": 'Congo (Kirshasa)',
-    "Ivory Coast": "Cote d'lvoire"}
-population_lookup_adjusted = population_lookup_adjusted.replace(
-    {'country_populations_Country': temp_country_replacement_list})
-
-#print details about the file to be written to sv.
+#Write the qc file to csv
 if run_script_printouts_and_write_qc_files == True:
-    print('population_lookup_adjusted', 'dtypes', '\n')
-    print(population_lookup_adjusted.dtypes)
+    population_data.to_csv(
+        output_qc_directory + '/' + 'population_data_with_added_countries_qc1.csv',
+        index=False)
+
+#build the data frame for joining and reconciliing country names
+data = {'orig_countryName': ['United States', 'Macedonia', 'South Korea',
+                             "Czech Republic", "DR Congo", "Ivory Coast",
+                             "Reunion", "Guadeloupe", "Martinique",
+                             "French Guiana", "Mayotte"],
+        'upd_countryName': ['US', 'North Macedonia', 'Korea, South', 'Czechia',
+                            'Congo (Kirshasa)', "Cote d'lvoire", 'France',
+                            'France', 'France', 'France', 'France'],
+        'upd_countryCode': ['US', 'MK', 'KR', 'CZ', 'CD', 'CI',
+                            'FR', 'FR', 'FR', 'FR', 'FR']}
+
+temp_country_replacement_df = pd.DataFrame(data)
+
+
+#%% Update incorrect country labels (i.e. some labels are regions/provinces instead
+# of countries)
+population_data_with_added_countries_updated_country_names = update_country_name_in_population_lookup(
+    population_lookup_df = population_data,
+    original_to_new_country_name_and_code_df = temp_country_replacement_df)
+
+    
+#%% print details about the file to be written to csv.
+if run_script_printouts_and_write_qc_files == True:
+    print('------------------------------------------------------')
+    print('\n','population_data_with_added_countries_updated_country_names',
+        'dtypes')
+    print(population_data_with_added_countries_updated_country_names.dtypes)
+
+if run_script_printouts_and_write_qc_files == True:
+    population_data_with_added_countries_updated_country_names.to_csv(
+        output_qc_directory + '/' + 'population_data_with_added_countries_updated_country_names_qc1.csv',
+        index=False)
+
+print('------------------------------------------------------')
+print('population_data_with_added_countries_updated_country_names number of countries:', 
+len(population_data_with_added_countries_updated_country_names.index))
+
+
+#%%Here we identify the continent name for each country and merge it with the population data set
+country_to_continent_mapping = download_csv_from_kaggle(
+    dataset='nikitagrec/world-capitals-gps', 
+    filename=country_to_continent_file,
+    path=country_to_continent_directory,
+    force=False).add_prefix("continent_")
+
+
+#%% Add missing rows to country_to_continent_mapping file
+# data = {'CountryName': ['a','1'],
+#         'CapitalName': ['b','2'],
+#         'CapitalLatitude': ['c','3'],
+#         'CapitalLongitude': ['d','4'],
+#         'CountryCode': ['e','5'],
+#         'ContinentName':['f','6']}
+
+# country_to_continent_mapping_updated = apply(
+#     lambda a,b,c,d,e,f: )
+
+# add_row_to_continent_lookup(
+#     continent_lookup_df=country_to_continent_mapping,
+#     CountryName, 
+#     CapitalName, 
+#     CaptialLatitude, 
+#     CapitalLongitude, 
+#     CountryCode, 
+#     ContinentName)
+
+print('------------------------------------------------------')
+population_data_with_added_countries_updated_country_names_with_continent = population_data_with_added_countries_updated_country_names.merge(
+    country_to_continent_mapping,
+    left_on='country_populations_countryCode_final',
+    right_on='continent_CountryCode')
+print('population_data_with_added_countries_updated_country_names_with_continent number of countries:',
+    len(population_data_with_added_countries_updated_country_names_with_continent.index))
+    
+len(population_data_with_added_countries_updated_country_names_with_continent.index)
+
+
+print('------------------------------------------------------')
+population_data_with_added_countries_updated_country_names_with_continent_left = population_data_with_added_countries_updated_country_names.merge(
+    country_to_continent_mapping,
+    how='left',
+    left_on='country_populations_countryCode_final',
+    right_on='continent_CountryCode')
+print('population_data_with_added_countries_updated_country_names_with_continent_left number of countries:', len(population_data_with_added_countries_updated_country_names_with_continent_left.index))
+
+population_data_with_added_countries_updated_country_names_with_continent_left.to_csv(
+    output_qc_directory + '/' + 'population_data_with_added_countries_updated_country_names_with_continent_qc1a_left.csv',
+    index=False)
+
+print('------------------------------------------------------')
+population_data_with_added_countries_updated_country_names_with_continent_right = population_data_with_added_countries_updated_country_names.merge(
+    country_to_continent_mapping,
+    how='right',
+    left_on='country_populations_countryCode_final',
+    right_on='continent_CountryCode')
+print('population_data_with_added_countries_updated_country_names_with_continent_right number of countries:', (population_data_with_added_countries_updated_country_names_with_continent_right.index))
+
+population_data_with_added_countries_updated_country_names_with_continent_right.to_csv(
+    output_qc_directory + '/' + 'population_data_with_added_countries_updated_country_names_with_continent_qc1b_right.csv',
+    index=False)
 
 
 #%% Merge the daily case totals and country population files and write to csv
 output_file_name_corona_case_with_meta_and_populations = 'corona_cases_daily_with_populations.csv'
 corona_daily_by_country_totals_and_populations = corona_daily_by_country_totals.merge(
-    population_lookup_adjusted, 
-    left_on='cases_Country/Region', right_on='country_populations_Country')
+    population_data_with_added_countries_updated_country_names, 
+    left_on='cases_Country/Region', right_on='country_populations_countryName_final')
 
 #This is to help identify the date type (for pp)
 corona_daily_by_country_totals_and_populations['cases_date'] = pd.to_datetime(
