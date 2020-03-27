@@ -440,7 +440,7 @@ corona_daily_by_country_totals_and_populations_aggregated = corona_daily_by_coun
     'country_populations_pop2020',
     'country_populations_area',
     'country_populations_Density',
-    'country_populations_GrowthRate',
+    #'country_populations_GrowthRate',
     'country_populations_worldPercentage_updated',
     'country_populations_rank_updated'
 ]).agg(recovered=('recovered', 'sum'),
