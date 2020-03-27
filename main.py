@@ -211,11 +211,11 @@ cases_column_order = [
 output_qc_directory = 'qc'
 num_to_lookup_long_and_lats = None
 num_to_lookup_case_coordinates = None
-run_script_printouts_and_write_qc_files = False
+run_script_printouts_and_write_qc_files = True
 
 
 #%% This is where we read the daily case files and melt them
-input_file_name_corona_case_confirmed = "time_series_19-covid-Confirmed"
+input_file_name_corona_case_confirmed = "time_series_19-covid-Confirmed.csv"
 corona_daily_by_country_confirmed = csv_contents_to_pandas_df(
     directory_name=input_directory_name_corona_cases, 
     file_name=input_file_name_corona_case_confirmed)
@@ -240,6 +240,7 @@ corona_daily_by_country_confirmed_melt = corona_daily_by_country_confirmed_melt[
 
 #print details about the file read in.
 if run_script_printouts_and_write_qc_files == True:
+    print('------------------------------------------------------') 
     print('corona_daily_by_country_confirmed_melt', 'dtypes', '\n')
     print(corona_daily_by_country_confirmed_melt.dtypes)
 
@@ -276,6 +277,7 @@ corona_daily_by_country_deaths_melt = corona_daily_by_country_deaths_melt[
 
 #print details about the file read in.
 if run_script_printouts_and_write_qc_files == True:
+    print('------------------------------------------------------')
     print('corona_daily_by_country_deaths_melt', 'dtypes', '\n')
     print(corona_daily_by_country_deaths_melt.dtypes)
 
@@ -309,6 +311,7 @@ corona_daily_by_country_recovered_melt = corona_daily_by_country_recovered_melt[
 
 #print details about the file read in.
 if run_script_printouts_and_write_qc_files == True:
+    print('------------------------------------------------------')
     print('corona_daily_by_country_recovered_melt', 'dtypes', '\n')
     print(corona_daily_by_country_recovered_melt.dtypes)
 
@@ -327,31 +330,26 @@ corona_daily_by_country_totals = corona_daily_by_country_totals[
 
 #print details about the file to be written to sv.
 if run_script_printouts_and_write_qc_files == True:
+    print('------------------------------------------------------')
     print('corona_daily_by_country_totals', 'dtypes', '\n')
     print(corona_daily_by_country_totals.dtypes)
-
-#Write the qc file to csv
-if run_script_printouts_and_write_qc_files == True:
-    corona_daily_by_country_totals.to_csv(
-        output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc1_postunion.csv', 
-        index=False)
 
 
 #%% This is where we read our population file and merge it with the corona cases
 # Here we also 1) add rows to our population table and 2) adjust the names of 
 #  countries in our population table
 input_directory_population_lookup = 'population_data'
-input_file_name_population_lookup = "population-data"
+input_file_name_population_lookup = "country-population-data"
 
 #Read in file
-population_lookup = csv_contents_to_pandas_df(
+population_data = csv_contents_to_pandas_df(
     directory_name=input_directory_population_lookup,
     file_name=input_file_name_population_lookup).add_prefix('country_populations_')
 
 #Add a row to the country population file for any recorded cases which may not 
 # have a respective 'country'
-population_lookup_adjusted = add_row_to_population_lookup(
-    population_lookup_df = population_lookup,
+population_data = add_row_to_population_lookup(
+    population_lookup_df = population_data,
     cca2='n/a',
     Country='Cruise Ship',
     pop2020=3.770,
