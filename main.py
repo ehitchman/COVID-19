@@ -4,18 +4,22 @@ import pandas as pd
 import numpy as np
 import csv
 import time
-pd.options.display.float_format = '{:.4f}'.format
+import pycountry_convert
+from kaggle.api.kaggle_api_extended import KaggleApi
+pd.options.display.float_format = '{:.6f}'.format
+
 
 #%%Define functions
 def csv_contents_to_pandas_df(directory_name, file_name):
     '''Function to read and assign csv file contents to pandas df'''
     try:
-        with open(directory_name + '/' + file_name + '.csv', 'rb') as file_obj:
-            temp_df = pd.read_csv(file_obj)
+        with open(directory_name + '/' + file_name.replace('.csv.csv', '').replace('.csv', '') + '.csv', 'rb') as file_obj:
+            temp_df = pd.read_csv(file_obj, keep_default_na=False)
             file_obj.close()
     except FileNotFoundError:
         print("File not found")
     return temp_df
+
 
 def distance_between_coordinates(lat1, lon1, lat2, lon2):
     '''Function to Calculate the distance between 2 sets of coordinates'''
