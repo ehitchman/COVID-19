@@ -518,7 +518,7 @@ if run_script_printouts_and_write_qc_files == True:
     corona_daily_by_country_totals_and_populations.to_csv(
         output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc3_preaggregate_filled_nas.csv',
         index=False)
-
+        
 
 #%%aggregate for row reduction
 corona_daily_by_country_totals_and_populations_aggregated = corona_daily_by_country_totals_and_populations.groupby([
