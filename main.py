@@ -398,7 +398,8 @@ if run_script_printouts_and_write_qc_files == True:
 
 #print details about the file to be written to sv.
 if run_script_printouts_and_write_qc_files == True:
-    print('corona_daily_by_country_totals_and_populations', 'dtypes', '\n')
+    print('------------------------------------------------------') 
+    print('\n', 'corona_daily_by_country_totals_and_populations', 'dtypes')
     print(corona_daily_by_country_totals_and_populations.dtypes)
 
 
