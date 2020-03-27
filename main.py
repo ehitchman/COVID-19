@@ -28,6 +28,7 @@ def distance_between_coordinates(lat1, lon1, lat2, lon2):
         cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2
     return 12742 * asin(sqrt(a))  # 2*R*asin...
 
+
 def add_row_to_population_lookup(
     population_lookup_df, cca2, Country, pop2020, dropdownData, area, GrowthRate
     ):
@@ -35,6 +36,7 @@ def add_row_to_population_lookup(
         create the data frame, then do any calculations, say world percentage,
         rank, population density, then create the output df which is the 
         original along with the added row'''
+
     temp_df_row_to_add = pd.DataFrame({
         'country_populations_cca2': [cca2],
         'country_populations_Country': [Country],
@@ -44,11 +46,11 @@ def add_row_to_population_lookup(
         'country_populations_Density': [0.00],
         'country_populations_GrowthRate': [GrowthRate],
         'country_populations_WorldPercentage': [0.00],
-        'country_populations_rank': [0]})
+        'country_populations_rank': [0]
+        })
 
     #calculate density
-    temp_df_row_to_add.at[0, 'country_populations_Density'] = temp_df_row_to_add.loc[0]['country_populations_pop2020'] / \
-        temp_df_row_to_add.loc[0]['country_populations_area']
+    temp_df_row_to_add.at[0, 'country_populations_Density'] = temp_df_row_to_add.loc[0]['country_populations_pop2020'] / temp_df_row_to_add.loc[0]['country_populations_area']
 
     #concatenate dfs
     temp_concatenated_df = pd.concat([
