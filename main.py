@@ -154,8 +154,8 @@ def add_row_to_continent_lookup(
         'continent_CapitalName': [CapitalName],
         'continent_CaptialLatitude':  [CaptialLatitude],
         'continent_CapitalLongitude': [CapitalLongitude],
-        'continent_CountryCode': [CountryCode],
-        'continent_ContinentName': [ContinentName]
+        'continent_alpha-2': [CountryCode],
+        'continent_name': [ContinentName]
         })
 
     #concatenate dfs
@@ -187,13 +187,13 @@ def download_csv_from_kaggle(dataset, filename, path, force):
 
     return temp_dataset
 
-
 #%% Set some params...
 #primary parameters for script...
 input_directory_name_corona_cases = 'csse_covid_19_data/csse_covid_19_time_series'
 output_final_directory = 'output'
 population_data_directory = 'country_population_data'
-country_to_continent_file = 'concap.csv'
+kaggle_country_to_continent_dataset = 'andradaolteanu/country-mapping-iso-continent-region'
+kaggle_country_to_continent_file = 'continents2'
 country_to_continent_directory = 'country_to_continent_mapping'
 run_nearest_city_loop = False
 
@@ -395,13 +395,22 @@ print('------------------------------------------------------')
 print('population_data_with_added_countries_updated_country_names number of countries:', 
 len(population_data_with_added_countries_updated_country_names.index))
 
-
 #%%Here we identify the continent name for each country and merge it with the population data set
 country_to_continent_mapping = download_csv_from_kaggle(
-    dataset='nikitagrec/world-capitals-gps', 
-    filename=country_to_continent_file,
+    dataset=kaggle_country_to_continent_dataset,
+    filename=kaggle_country_to_continent_file,
     path=country_to_continent_directory,
     force=False).add_prefix("continent_")
+
+country_to_continent_mapping_added_rows = add_row_to_continent_lookup(
+    continent_lookup_df=country_to_continent_mapping,
+    CountryName='Cruise Ship',
+    CapitalName='None',
+    CapitalLongitude=None,
+    CaptialLatitude=None,
+    CountryCode='None',
+    ContinentName='None'
+)
 
 
 #%% Add missing rows to country_to_continent_mapping file
@@ -409,48 +418,45 @@ print('------------------------------------------------------')
 population_data_with_added_countries_updated_country_names_with_continent = population_data_with_added_countries_updated_country_names.merge(
     country_to_continent_mapping,
     left_on='country_populations_countryCode_final',
-    right_on='continent_CountryCode')
+    right_on='continent_alpha-2')
 print('population_data_with_added_countries_updated_country_names_with_continent number of countries:',
     len(population_data_with_added_countries_updated_country_names_with_continent.index))
-    
-len(population_data_with_added_countries_updated_country_names_with_continent.index)
 
 
-print('------------------------------------------------------')
-population_data_with_added_countries_updated_country_names_with_continent_left = population_data_with_added_countries_updated_country_names.merge(
-    country_to_continent_mapping,
-    how='left',
-    left_on='country_populations_countryCode_final',
-    right_on='continent_CountryCode')
-print('population_data_with_added_countries_updated_country_names_with_continent_left number of countries:', len(population_data_with_added_countries_updated_country_names_with_continent_left.index))
+if run_script_printouts_and_write_qc_files == True:
+    print('------------------------------------------------------')
+    population_data_with_added_countries_updated_country_names_with_continent_left = population_data_with_added_countries_updated_country_names.merge(
+        country_to_continent_mapping,
+        how='left',
+        left_on='country_populations_countryCode_final',
+        right_on='continent_alpha-2')
+    print('population_data_with_added_countries_updated_country_names_with_continent_left number of countries:', len(population_data_with_added_countries_updated_country_names_with_continent_left.index))
 
-population_data_with_added_countries_updated_country_names_with_continent_left.to_csv(
-    output_qc_directory + '/' + 'population_data_with_added_countries_updated_country_names_with_continent_qc1a_left.csv',
-    index=False)
+    population_data_with_added_countries_updated_country_names_with_continent_left.to_csv(
+        output_qc_directory + '/' + 'population_data_with_added_countries_updated_country_names_with_continent_qc1a_left.csv',
+        index=False)
 
-print('------------------------------------------------------')
-population_data_with_added_countries_updated_country_names_with_continent_right = population_data_with_added_countries_updated_country_names.merge(
-    country_to_continent_mapping,
-    how='right',
-    left_on='country_populations_countryCode_final',
-    right_on='continent_CountryCode')
-print('population_data_with_added_countries_updated_country_names_with_continent_right number of countries:', (population_data_with_added_countries_updated_country_names_with_continent_right.index))
+    print('------------------------------------------------------')
+    population_data_with_added_countries_updated_country_names_with_continent_right = population_data_with_added_countries_updated_country_names.merge(
+        country_to_continent_mapping,
+        how='right',
+        left_on='country_populations_countryCode_final',
+        right_on='continent_alpha-2')
+    print('population_data_with_added_countries_updated_country_names_with_continent_right number of countries:', (population_data_with_added_countries_updated_country_names_with_continent_right.index))
 
-population_data_with_added_countries_updated_country_names_with_continent_right.to_csv(
-    output_qc_directory + '/' + 'population_data_with_added_countries_updated_country_names_with_continent_qc1b_right.csv',
-    index=False)
-
+    population_data_with_added_countries_updated_country_names_with_continent_right.to_csv(
+        output_qc_directory + '/' + 'population_data_with_added_countries_updated_country_names_with_continent_qc1b_right.csv',
+        index=False)
 
 #%% Merge the daily case totals and country population files and write to csv
 output_file_name_corona_case_with_meta_and_populations = 'corona_cases_daily_with_populations.csv'
 corona_daily_by_country_totals_and_populations = corona_daily_by_country_totals.merge(
-    population_data_with_added_countries_updated_country_names, 
+    population_data_with_added_countries_updated_country_names_with_continent,
     left_on='cases_Country/Region', right_on='country_populations_countryName_final')
 
 #This is to help identify the date type (for pp)
 corona_daily_by_country_totals_and_populations['cases_date'] = pd.to_datetime(
     corona_daily_by_country_totals_and_populations['cases_date'])
-
 
 #find the max date and add it to the dataframe
 max_date = max(corona_daily_by_country_totals_and_populations['cases_date'])
@@ -507,7 +513,8 @@ corona_daily_by_country_totals_and_populations_aggregated = corona_daily_by_coun
     'country_populations_area',
     'country_populations_Density',
     'country_populations_worldPercentage',
-    'country_populations_rank'
+    'country_populations_rank',
+    'continent_name'
 ]).agg(recovered=('recovered', 'sum'),
        confirmed=('confirmed', 'sum'),
        deaths=('deaths', 'sum')
@@ -531,7 +538,7 @@ num_cases_to_start = 10
 corona_daily_by_country_totals_and_populations_aggregated['10_or_more_confirmed_cases'] = np.where(
     corona_daily_by_country_totals_and_populations_aggregated.confirmed >= num_cases_to_start, 
     True, False)
-corona_daily_by_country_totals_and_populations_aggregated['10_or_more_type_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated.groupby(
+corona_daily_by_country_totals_and_populations_aggregated['10_or_more_confirmed_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated.groupby(
     ['cases_Country/Region', '10_or_more_confirmed_cases'])['cases_date'].rank(method='dense')
 
 #flag for 25 cases
@@ -539,8 +546,16 @@ num_cases_to_start = 25
 corona_daily_by_country_totals_and_populations_aggregated['25_or_more_confirmed_cases'] = np.where(
     corona_daily_by_country_totals_and_populations_aggregated.confirmed >= num_cases_to_start,
     True, False)
-corona_daily_by_country_totals_and_populations_aggregated['25_or_more_type_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated.groupby(
+corona_daily_by_country_totals_and_populations_aggregated['25_or_more_confirmed_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated.groupby(
     ['cases_Country/Region', '25_or_more_confirmed_cases'])['cases_date'].rank(method='dense')
+
+#flag for 100 cases
+num_cases_to_start = 100
+corona_daily_by_country_totals_and_populations_aggregated['100_or_more_confirmed_cases'] = np.where(
+    corona_daily_by_country_totals_and_populations_aggregated.confirmed >= num_cases_to_start,
+    True, False)
+corona_daily_by_country_totals_and_populations_aggregated['100_or_more_confirmed_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated.groupby(
+    ['cases_Country/Region', '100_or_more_confirmed_cases'])['cases_date'].rank(method='dense')
 
 
 #%%Write the final aggregated dataframe to csv
