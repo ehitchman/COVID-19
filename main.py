@@ -418,25 +418,6 @@ country_to_continent_mapping = download_csv_from_kaggle(
 
 
 #%% Add missing rows to country_to_continent_mapping file
-# data = {'CountryName': ['a','1'],
-#         'CapitalName': ['b','2'],
-#         'CapitalLatitude': ['c','3'],
-#         'CapitalLongitude': ['d','4'],
-#         'CountryCode': ['e','5'],
-#         'ContinentName':['f','6']}
-
-# country_to_continent_mapping_updated = apply(
-#     lambda a,b,c,d,e,f: )
-
-# add_row_to_continent_lookup(
-#     continent_lookup_df=country_to_continent_mapping,
-#     CountryName, 
-#     CapitalName, 
-#     CaptialLatitude, 
-#     CapitalLongitude, 
-#     CountryCode, 
-#     ContinentName)
-
 print('------------------------------------------------------')
 population_data_with_added_countries_updated_country_names_with_continent = population_data_with_added_countries_updated_country_names.merge(
     country_to_continent_mapping,
