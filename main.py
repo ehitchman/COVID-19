@@ -12,6 +12,11 @@ pd.options.display.float_format = '{:.6f}'.format
 #%%Define functions
 def csv_contents_to_pandas_df(directory_name, file_name):
     '''Function to read and assign csv file contents to pandas df'''
+
+    print("directory name:", directory_name)
+    print("file name:", file_name)
+    print("file object:", directory_name + '/' +
+                           file_name.replace('.csv.csv', '').replace('.csv', '') + '.csv')
     try:
         with open(directory_name + '/' + file_name.replace('.csv.csv', '').replace('.csv', '') + '.csv', 'rb') as file_obj:
             temp_df = pd.read_csv(file_obj, keep_default_na=False)
@@ -110,6 +115,7 @@ def update_country_name_in_population_lookup(
 
     print('------------------------------------------------------')
     print('\n', 'this is final DF after the aggregation...')
+    final_df_aggregated.to_csv('__final_population_df_3_after_aggregation.csv')
     print(final_df_aggregated)
 
     #calculate density
@@ -125,6 +131,7 @@ def update_country_name_in_population_lookup(
 
     print('------------------------------------------------------')
     print('this is final DF after the updated calculations...')
+    final_df_aggregated.to_csv('__final_population_df_4_after_all_is_set_and_done.csv')
     print(final_df_aggregated)
 
     return final_df_aggregated
@@ -215,7 +222,7 @@ run_script_printouts_and_write_qc_files = True
 
 
 #%% This is where we read the daily case files and melt them
-input_file_name_corona_case_confirmed = "time_series_19-covid-Confirmed.csv"
+input_file_name_corona_case_confirmed = "time_series_covid19_confirmed_global.csv"
 corona_daily_by_country_confirmed = csv_contents_to_pandas_df(
     directory_name=input_directory_name_corona_cases, 
     file_name=input_file_name_corona_case_confirmed)
@@ -246,7 +253,7 @@ if run_script_printouts_and_write_qc_files == True:
 
 
 #%% This is where we read the daily death case files and melt them
-input_file_name_corona_case_deaths = "time_series_19-covid-Deaths"
+input_file_name_corona_case_deaths = "time_series_covid19_deaths_global.csv"
 corona_daily_by_country_deaths = csv_contents_to_pandas_df(
     directory_name=input_directory_name_corona_cases,
     file_name=input_file_name_corona_case_deaths)
@@ -283,7 +290,7 @@ if run_script_printouts_and_write_qc_files == True:
 
 
 #%% This is where we read the daily recovered case files and melt them
-input_file_name_corona_case_recovered = "time_series_19-covid-Recovered"
+input_file_name_corona_case_recovered = "time_series_covid19_recovered_global.csv"
 
 corona_daily_by_country_recovered = csv_contents_to_pandas_df(
     directory_name=input_directory_name_corona_cases,
@@ -475,6 +482,7 @@ corona_daily_by_country_totals_and_populations = corona_daily_by_country_totals.
 #This is to help identify the date type (for pp)
 corona_daily_by_country_totals_and_populations['cases_date'] = pd.to_datetime(
     corona_daily_by_country_totals_and_populations['cases_date'])
+
 
 #find the max date and add it to the dataframe
 max_date = max(corona_daily_by_country_totals_and_populations['cases_date'])
