@@ -92,18 +92,29 @@ def update_country_name_in_population_lookup(
         how="left")
 
     print('------------------------------------------------------')
-    print('\n', 'this is final DF after the merge...')
+    print('\n', 'this is final DF after the merge... also written to csv...')
+    final_df.to_csv('__final_population_df_1_after_merge.csv')
     print(final_df)
 
     #Here is a statement similar to coalesce which prioritizes the lookup value,
     # and if no lookup value is found, the original value is used in its place
-    final_df['country_populations_countryName_final'] = final_df[['orig_countryName', 'upd_countryName', 'country_populations_Country']].apply(
-        lambda x: x['upd_countryName'] if pd.isnull(x[
-            'orig_countryName']) else x['country_populations_Country'], axis=1)
+    final_df['country_populations_countryName_final'] = np.where(
+        final_df["upd_countryName"].isnull(), final_df["country_populations_Country"], final_df["upd_countryName"])
+    final_df['country_populations_countryCode_final'] = np.where(
+        final_df["upd_countryName"].isnull(), final_df["country_populations_cca2"], final_df["upd_countryCode"])
 
-    final_df['country_populations_countryCode_final'] = final_df[['orig_countryName', 'upd_countryCode', 'country_populations_cca2']].apply(
-        lambda x: x['upd_countryCode'] if pd.isnull(x[
-            'orig_countryName']) else x['country_populations_cca2'], axis=1)
+    # final_df['country_populations_countryName_final'] = final_df[['orig_countryName', 'upd_countryName', 'country_populations_Country']].apply(
+    #     lambda x: x['upd_countryName'] if pd.isnull(x[
+    #         'orig_countryName']) else x['country_populations_Country'], axis=1)
+
+    # final_df['country_populations_countryCode_final'] = final_df[['orig_countryName', 'upd_countryCode', 'country_populations_cca2']].apply(
+    #     lambda x: x['upd_countryCode'] if pd.isnull(x[
+    #         'orig_countryName']) else x['country_populations_cca2'], axis=1)
+
+    print('------------------------------------------------------')
+    print("this is final_df after the second apply statement....also written to csv...")
+    final_df.to_csv('__final_population_df_2_after_coalesce.csv')
+    print(final_df)
 
     #Aggregate adjusted population table to ensure there are no duplicates
     final_df_aggregated = final_df.groupby([
@@ -521,9 +532,8 @@ corona_daily_by_country_totals_and_populations_aggregated = corona_daily_by_coun
     'country_populations_pop2020',
     'country_populations_area',
     'country_populations_Density',
-    #'country_populations_GrowthRate',
-    'country_populations_worldPercentage_updated',
-    'country_populations_rank_updated'
+    'country_populations_worldPercentage',
+    'country_populations_rank'
 ]).agg(recovered=('recovered', 'sum'),
        confirmed=('confirmed', 'sum'),
        deaths=('deaths', 'sum')
@@ -536,25 +546,28 @@ if run_script_printouts_and_write_qc_files == True:
         output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc4_postaggregate.csv', 
         index=False)
 
+#%% Add a flag for when total confirmed cases reached N for each country and 
+# then Assign a sequential number to each date based on the
 
-#%% Add a flag for when total confirmed cases reached N for each country
+#Name of output file 
 output_file_name_corona_case_with_meta_and_populations_and_flags = 'corona_cases_daily_with_populations_and_flags.csv'
+
+#flag for 10 cases
 num_cases_to_start = 10
 corona_daily_by_country_totals_and_populations_aggregated['10_or_more_confirmed_cases'] = np.where(
     corona_daily_by_country_totals_and_populations_aggregated.confirmed >= num_cases_to_start, 
     True, False)
-
-#Assign a sequential number to each date based on the 
-# "confirmed_cases_less_than_or_greater_than_10"
-corona_daily_by_country_totals_and_populations_aggregated['10_or_more_confirmed_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated.groupby(
+corona_daily_by_country_totals_and_populations_aggregated['10_or_more_type_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated.groupby(
     ['cases_Country/Region', '10_or_more_confirmed_cases'])['cases_date'].rank(method='dense')
 
-#Write the file to csv
-# TODO This is a temporary step
-if run_script_printouts_and_write_qc_files == True:
-    corona_daily_by_country_totals_and_populations_aggregated.to_csv(
-        output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc5_postaggregate_with_flags.csv',
-        index=False)
+#flag for 25 cases
+num_cases_to_start = 25
+corona_daily_by_country_totals_and_populations_aggregated['25_or_more_confirmed_cases'] = np.where(
+    corona_daily_by_country_totals_and_populations_aggregated.confirmed >= num_cases_to_start,
+    True, False)
+corona_daily_by_country_totals_and_populations_aggregated['25_or_more_type_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated.groupby(
+    ['cases_Country/Region', '25_or_more_confirmed_cases'])['cases_date'].rank(method='dense')
+
 
 #%%Write the final aggregated dataframe to csv
 corona_daily_by_country_totals_and_populations_aggregated.to_csv(
