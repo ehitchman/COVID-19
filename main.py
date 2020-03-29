@@ -8,7 +8,6 @@ import pycountry_convert
 from kaggle.api.kaggle_api_extended import KaggleApi
 pd.options.display.float_format = '{:.6f}'.format
 
-
 #%%Define functions
 def csv_contents_to_pandas_df(directory_name, file_name):
     '''Function to read and assign csv file contents to pandas df'''
@@ -25,14 +24,12 @@ def csv_contents_to_pandas_df(directory_name, file_name):
         print("File not found")
     return temp_df
 
-
 def distance_between_coordinates(lat1, lon1, lat2, lon2):
     '''Function to Calculate the distance between 2 sets of coordinates'''
     p = 0.017453292519943295  # Pi/180
     a = 0.5 - cos((lat2 - lat1) * p)/2 + cos(lat1 * p) * \
         cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2
     return 12742 * asin(sqrt(a))  # 2*R*asin...
-
 
 def add_row_to_population_lookup(
     population_lookup_df, cca2, Country, pop2020, dropdownData, area, GrowthRate
@@ -73,7 +70,6 @@ def add_row_to_population_lookup(
 
     return temp_concatenated_df
 
-
 def update_country_name_in_population_lookup(
     population_lookup_df, 
     original_to_new_country_name_and_code_df):
@@ -102,14 +98,6 @@ def update_country_name_in_population_lookup(
         final_df["upd_countryName"].isnull(), final_df["country_populations_Country"], final_df["upd_countryName"])
     final_df['country_populations_countryCode_final'] = np.where(
         final_df["upd_countryName"].isnull(), final_df["country_populations_cca2"], final_df["upd_countryCode"])
-
-    # final_df['country_populations_countryName_final'] = final_df[['orig_countryName', 'upd_countryName', 'country_populations_Country']].apply(
-    #     lambda x: x['upd_countryName'] if pd.isnull(x[
-    #         'orig_countryName']) else x['country_populations_Country'], axis=1)
-
-    # final_df['country_populations_countryCode_final'] = final_df[['orig_countryName', 'upd_countryCode', 'country_populations_cca2']].apply(
-    #     lambda x: x['upd_countryCode'] if pd.isnull(x[
-    #         'orig_countryName']) else x['country_populations_cca2'], axis=1)
 
     print('------------------------------------------------------')
     print("this is final_df after the second apply statement....also written to csv...")
@@ -147,7 +135,6 @@ def update_country_name_in_population_lookup(
 
     return final_df_aggregated
 
-
 def add_row_to_continent_lookup(
     continent_lookup_df, 
     CountryName, 
@@ -179,16 +166,13 @@ def add_row_to_continent_lookup(
 
     return temp_concatenated_df
 
-
 def download_csv_from_kaggle(dataset, filename, path, force):
     api = KaggleApi()
     api.authenticate()
 
-    print('filename being checked:', filename)
+    print('directory being checked:', path)
     filename = filename.replace('.csv.csv', '').replace('.csv','') + '.csv'
-
-    print('directory being checked:', path)    
-    print('filename being checked', filename)
+    print('filename being checked:', filename)
 
     temp_dataset = api.dataset_download_file(
         dataset = dataset, 
@@ -231,7 +215,6 @@ num_to_lookup_long_and_lats = None
 num_to_lookup_case_coordinates = None
 run_script_printouts_and_write_qc_files = True
 
-
 #%% This is where we read the daily case files and melt them
 input_file_name_corona_case_confirmed = "time_series_covid19_confirmed_global.csv"
 corona_daily_by_country_confirmed = csv_contents_to_pandas_df(
@@ -261,7 +244,6 @@ if run_script_printouts_and_write_qc_files == True:
     print('------------------------------------------------------') 
     print('corona_daily_by_country_confirmed_melt', 'dtypes', '\n')
     print(corona_daily_by_country_confirmed_melt.dtypes)
-
 
 #%% This is where we read the daily death case files and melt them
 input_file_name_corona_case_deaths = "time_series_covid19_deaths_global.csv"
@@ -299,7 +281,6 @@ if run_script_printouts_and_write_qc_files == True:
     print('corona_daily_by_country_deaths_melt', 'dtypes', '\n')
     print(corona_daily_by_country_deaths_melt.dtypes)
 
-
 #%% This is where we read the daily recovered case files and melt them
 input_file_name_corona_case_recovered = "time_series_covid19_recovered_global.csv"
 
@@ -333,7 +314,6 @@ if run_script_printouts_and_write_qc_files == True:
     print('corona_daily_by_country_recovered_melt', 'dtypes', '\n')
     print(corona_daily_by_country_recovered_melt.dtypes)
 
-
 #%% concatenate the DataFrames
 corona_daily_by_country_totals = pd.concat([
     corona_daily_by_country_recovered_melt, 
@@ -351,7 +331,6 @@ if run_script_printouts_and_write_qc_files == True:
     print('------------------------------------------------------')
     print('corona_daily_by_country_totals', 'dtypes', '\n')
     print(corona_daily_by_country_totals.dtypes)
-
 
 #%% This is where we read our population file and merge it with the corona cases
 # Here we also 1) add rows to our population table and 2) adjust the names of 
@@ -392,17 +371,14 @@ data = {'orig_countryName': ['United States', 'Macedonia', 'South Korea',
                             'France', 'France', 'France', 'France'],
         'upd_countryCode': ['US', 'MK', 'KR', 'CZ', 'CD', 'CI',
                             'FR', 'FR', 'FR', 'FR', 'FR']}
-
 temp_country_replacement_df = pd.DataFrame(data)
-
 
 #%% Update incorrect country labels (i.e. some labels are regions/provinces instead
 # of countries)
 population_data_with_added_countries_updated_country_names = update_country_name_in_population_lookup(
     population_lookup_df = population_data,
     original_to_new_country_name_and_code_df = temp_country_replacement_df)
-
-    
+  
 #%% print details about the file to be written to csv.
 if run_script_printouts_and_write_qc_files == True:
     print('------------------------------------------------------')
@@ -493,7 +469,6 @@ if run_script_printouts_and_write_qc_files == True:
     print('\n', 'corona_daily_by_country_totals_and_populations', 'dtypes')
     print(corona_daily_by_country_totals_and_populations.dtypes)
 
-
 #%% Identify columns with nulls, and Fill 'NA', 'missing' or 'zero'
 null_str_fill_value = 'missing'
 null_float_fill_value = 0
@@ -519,7 +494,6 @@ if run_script_printouts_and_write_qc_files == True:
         output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc3_preaggregate_filled_nas.csv',
         index=False)
         
-
 #%%aggregate for row reduction
 corona_daily_by_country_totals_and_populations_aggregated = corona_daily_by_country_totals_and_populations.groupby([
     'cases_date',
@@ -576,3 +550,6 @@ corona_daily_by_country_totals_and_populations_aggregated.to_csv(
 
 #%%
 print('all done here...')
+
+
+# %%
