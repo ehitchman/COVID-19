@@ -3,3 +3,4 @@ output/corona_cases_daily_with_populations_qc1_postunion.csv,output/corona_cases
 output/corona_cases_daily_with_populations_qc.*
 kaggle.json
 *.twbr
+qc/
