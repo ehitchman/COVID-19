@@ -514,7 +514,8 @@ corona_daily_by_country_totals_and_populations_aggregated = corona_daily_by_coun
     'country_populations_Density',
     'country_populations_worldPercentage',
     'country_populations_rank',
-    'continent_name'
+    'continent_sub-region',
+    'continent_continentName'
 ]).agg(recovered=('recovered', 'sum'),
        confirmed=('confirmed', 'sum'),
        deaths=('deaths', 'sum')
