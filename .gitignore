@@ -5,3 +5,7 @@ kaggle.json
 *.twbr
 qc/
 __final_population*.
+__final_population_df_1_after_merge.csv
+__final_population_df_2_after_coalesce.csv
+__final_population_df_3_after_aggregation.csv
+__final_population_df_4_after_all_is_set_and_done.csv
