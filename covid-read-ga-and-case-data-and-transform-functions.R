@@ -75,8 +75,6 @@ funcGA_listOfAccounts <- function(ga_account_list,
     print('-----')
     
     ga_viewId = ga_account_list[i,'viewId']
-    print("ga_viewId")    
-    print(ga_viewId)
     
     tempDF <- google_analytics(viewId = ga_viewId, 
                                date_range = date_range,
@@ -85,9 +83,16 @@ funcGA_listOfAccounts <- function(ga_account_list,
                                anti_sample = TRUE,
                                max = max_rows)
     
+    number_of_rows = length(tempDF)
+    print("Number of rows in this pull:")
+    print(length(tempDF))
+    
     tempDF <- merge(tempDF, 
                     ga_account_list,
                     on.x = viewId_column)
+    if (length(tempDF) == number_of_rows) {
+      next
+    } else {print("Row counts were different after merging the ga_account_list.... not sure why...")}
     
     if (i == 1) {
       finalDF = tempDF
