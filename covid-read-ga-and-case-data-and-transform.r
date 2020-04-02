@@ -10,7 +10,7 @@ library(readxl)
 
 #########################################################
 #set some parameters for folder names, view ids, QC, etc.
-run_script_printouts_and_write_qc_files = FALSE
+run_script_printouts_and_write_qc_files = TRUE
 gaStartDate <- '2020-01-01'
 gaEndDate <- as.character(Sys.Date()-1)
 folderNameMetricsDimensions <- "metrics-and-dimensions"
@@ -97,15 +97,13 @@ if (run_script_printouts_and_write_qc_files == TRUE) {
             file = qc_unique_countries_merged_ga_left, 
             row.names = FALSE)  
 
-
-  
   ###########################################
   #merge and then write Write final data file
   qc_ga_and_covid = 'output_ga_and_covid.csv'
   final_merge = merge(df_unionsed, covid, 
                       by.x = c('date', 'country'),
                       by.y = c('cases_date', 'cases_Country.Region'))
-  write.csv(final_merge, file = qc_ga_and_covid, row.names = FALSE)
+  write.csv(final_merge, file = paste0(output_qc_directory, "/", qc_ga_and_covid), row.names = FALSE)
 }
 
 #####################################################
