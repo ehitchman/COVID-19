@@ -111,7 +111,7 @@ if (run_script_printouts_and_write_qc_files == TRUE) {
 #####################################################
 #merge final data file with the custom GA lookup file
 output_final_merge_with_lookup = 'output_ga_and_covid_and_ga_account_list_lookup.csv'
-final_merge_with_lookup = merge(final_merge, 
+final_merge_with_lookup = merge(df_unionsed, 
                                 ga_account_list_lookup, 
                                 on = c(viewId))
 
