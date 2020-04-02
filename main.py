@@ -6,6 +6,9 @@ import csv
 import time
 import pycountry_convert
 from kaggle.api.kaggle_api_extended import KaggleApi
+import requests
+import json
+import pprint
 pd.options.display.float_format = '{:.6f}'.format
 
 #%%Define functions
@@ -187,11 +190,60 @@ def download_csv_from_kaggle(dataset, filename, path, force):
 
     return temp_dataset
 
+
+def download_stats_canada_provincial_populations(
+    output_file_name='canada_province_population_data.csv',
+    stats_canada_data_year='2016'):
+    '''
+    Example URL: https://www12.statcan.gc.ca/rest/census-recensement/CPR2016.json?lang=E&dguid=2016A000224&topic=13&stat=0
+    '''
+
+    #Get the geouid from statscan
+    basestatscanurl = 'https://www12.statcan.gc.ca/rest/census-recensement/'
+    finalurl = basestatscanurl + 'CR2016Geo.json' + '?' + \
+        'lang=E' + '&' + 'geos=PR' + '&' + 'cpt=00'
+    response_text = requests.get(finalurl).text.replace('//', '')
+    response_json = json.loads(response_text)
+    df_geouid = pd.DataFrame(
+        response_json['DATA'], columns=response_json['COLUMNS'])
+
+    df_geouid_noncanada = df_geouid[df_geouid['PROV_TERR_NAME_NOM'] != 'Canada']
+    list_geoid_noncanada = df_geouid_noncanada['GEO_UID']
+
+    def pull_populations_from_stats_canada_based_on_dguid(dguid):
+
+        print('---------')
+        basestatscanurl = 'https://www12.statcan.gc.ca/rest/census-recensement/'
+        finalurl = basestatscanurl + 'CPR2016.json' + '?' + 'lang=E' + \
+        '&' + 'dguid=' + dguid + '&' + 'topic=13' + '&' + 'stat=0'
+        print(finalurl)
+        response = requests.get(finalurl)
+        response_text = response.text.replace('//', '')
+        response_json = json.loads(response_text)
+
+        df = pd.DataFrame(response_json['DATA'], columns=response_json['COLUMNS'])
+        df = df[df['TEXT_NAME_NOM'] == 'Population, '+stats_canada_data_year]
+        
+        return(df)
+
+    #Use the list of geouids to grab the population data
+    list_of_dfs = [pull_populations_from_stats_canada_based_on_dguid(
+        x) for x in list_geoid_noncanada]
+
+    #concatenate the list of dfs 
+    df = pd.concat(list_of_dfs, ignore_index=True)
+    df.to_csv(output_file_name)
+    print(df)
+
+    return(df)
+
+
 #%% Set some params...
 #primary parameters for script...
+output_file_name_corona_case_with_meta_and_populations_and_flags = 'corona_cases_daily_with_populations_and_flags.csv'
 input_directory_name_corona_cases = 'csse_covid_19_data/csse_covid_19_time_series'
 output_final_directory = 'output'
-population_data_directory = 'country_population_data'
+population_data_directory = 'population_data'
 kaggle_country_to_continent_dataset = 'andradaolteanu/country-mapping-iso-continent-region'
 kaggle_country_to_continent_file = 'continents2'
 country_to_continent_directory = 'country_to_continent_mapping'
@@ -214,6 +266,8 @@ output_qc_directory = 'qc'
 num_to_lookup_long_and_lats = None
 num_to_lookup_case_coordinates = None
 run_script_printouts_and_write_qc_files = True
+
+
 
 #%% This is where we read the daily case files and melt them
 input_file_name_corona_case_confirmed = "time_series_covid19_confirmed_global.csv"
@@ -244,6 +298,8 @@ if run_script_printouts_and_write_qc_files == True:
     print('------------------------------------------------------') 
     print('corona_daily_by_country_confirmed_melt', 'dtypes', '\n')
     print(corona_daily_by_country_confirmed_melt.dtypes)
+
+
 
 #%% This is where we read the daily death case files and melt them
 input_file_name_corona_case_deaths = "time_series_covid19_deaths_global.csv"
@@ -281,6 +337,8 @@ if run_script_printouts_and_write_qc_files == True:
     print('corona_daily_by_country_deaths_melt', 'dtypes', '\n')
     print(corona_daily_by_country_deaths_melt.dtypes)
 
+
+
 #%% This is where we read the daily recovered case files and melt them
 input_file_name_corona_case_recovered = "time_series_covid19_recovered_global.csv"
 
@@ -314,6 +372,8 @@ if run_script_printouts_and_write_qc_files == True:
     print('corona_daily_by_country_recovered_melt', 'dtypes', '\n')
     print(corona_daily_by_country_recovered_melt.dtypes)
 
+
+
 #%% concatenate the DataFrames
 corona_daily_by_country_totals = pd.concat([
     corona_daily_by_country_recovered_melt, 
@@ -332,15 +392,16 @@ if run_script_printouts_and_write_qc_files == True:
     print('corona_daily_by_country_totals', 'dtypes', '\n')
     print(corona_daily_by_country_totals.dtypes)
 
+
+
 #%% This is where we read our population file and merge it with the corona cases
 # Here we also 1) add rows to our population table and 2) adjust the names of 
 #  countries in our population table
-input_directory_population_lookup = 'population_data'
 input_file_name_population_lookup = "country-population-data"
 
 #Read in file
 population_data = csv_contents_to_pandas_df(
-    directory_name=input_directory_population_lookup,
+    directory_name=population_data_directory,
     file_name=input_file_name_population_lookup).add_prefix('country_populations_')
 
 #Add a row to the country population file for any recorded cases which may not 
@@ -373,12 +434,16 @@ data = {'orig_countryName': ['United States', 'Macedonia', 'South Korea',
                             'FR', 'FR', 'FR', 'FR', 'FR']}
 temp_country_replacement_df = pd.DataFrame(data)
 
+
+
 #%% Update incorrect country labels (i.e. some labels are regions/provinces instead
 # of countries)
 population_data_with_added_countries_updated_country_names = update_country_name_in_population_lookup(
     population_lookup_df = population_data,
     original_to_new_country_name_and_code_df = temp_country_replacement_df)
-  
+
+
+
 #%% print details about the file to be written to csv.
 if run_script_printouts_and_write_qc_files == True:
     print('------------------------------------------------------')
@@ -394,6 +459,8 @@ if run_script_printouts_and_write_qc_files == True:
 print('------------------------------------------------------')
 print('population_data_with_added_countries_updated_country_names number of countries:', 
 len(population_data_with_added_countries_updated_country_names.index))
+
+
 
 #%%Here we identify the continent name for each country and merge it with the population data set
 country_to_continent_mapping = download_csv_from_kaggle(
@@ -411,6 +478,7 @@ country_to_continent_mapping_added_rows = add_row_to_continent_lookup(
     CountryCode='None',
     ContinentName='None'
 )
+
 
 
 #%% Add missing rows to country_to_continent_mapping file
@@ -448,11 +516,14 @@ if run_script_printouts_and_write_qc_files == True:
         output_qc_directory + '/' + 'population_data_with_added_countries_updated_country_names_with_continent_qc1b_right.csv',
         index=False)
 
+
+
 #%% Merge the daily case totals and country population files and write to csv
 output_file_name_corona_case_with_meta_and_populations = 'corona_cases_daily_with_populations.csv'
 corona_daily_by_country_totals_and_populations = corona_daily_by_country_totals.merge(
     population_data_with_added_countries_updated_country_names_with_continent,
-    left_on='cases_Country/Region', right_on='country_populations_countryName_final')
+    left_on='cases_Country/Region', 
+    right_on='country_populations_countryName_final')
 
 #This is to help identify the date type (for pp)
 corona_daily_by_country_totals_and_populations['cases_date'] = pd.to_datetime(
@@ -474,6 +545,8 @@ if run_script_printouts_and_write_qc_files == True:
     print('------------------------------------------------------') 
     print('\n', 'corona_daily_by_country_totals_and_populations', 'dtypes')
     print(corona_daily_by_country_totals_and_populations.dtypes)
+
+
 
 #%% Identify columns with nulls, and Fill 'NA', 'missing' or 'zero'
 null_str_fill_value = 'missing'
@@ -499,7 +572,9 @@ if run_script_printouts_and_write_qc_files == True:
     corona_daily_by_country_totals_and_populations.to_csv(
         output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc3_preaggregate_filled_nas.csv',
         index=False)
-        
+
+
+
 #%%aggregate for row reduction
 corona_daily_by_country_totals_and_populations_aggregated = corona_daily_by_country_totals_and_populations.groupby([
     'cases_date',
@@ -528,44 +603,57 @@ if run_script_printouts_and_write_qc_files == True:
         output_qc_directory + '/' + 'corona_cases_daily_with_populations_qc4_postaggregate.csv', 
         index=False)
 
+
+
+#%% Download and merge the Canada Province/Territory populations
+canada_province_territory_populations = download_stats_canada_provincial_populations(
+    output_file_name='canada_province_population_data.csv',
+    stats_canada_data_year='2016').add_prefix('canada_')
+
+corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations = corona_daily_by_country_totals_and_populations_aggregated.merge(
+    canada_province_territory_populations,
+    how='left',
+    left_on='cases_Province/State',
+    right_on='canada_PROV_TERR_NAME_NOM')
+
+
+
 #%% Add a flag for when total confirmed cases reached N for each country and 
 # then Assign a sequential number to each date based on the
-
 #Name of output file 
-output_file_name_corona_case_with_meta_and_populations_and_flags = 'corona_cases_daily_with_populations_and_flags.csv'
 
 #flag for 10 cases
 num_cases_to_start = 10
-corona_daily_by_country_totals_and_populations_aggregated['10_or_more_confirmed_cases'] = np.where(
-    corona_daily_by_country_totals_and_populations_aggregated.confirmed >= num_cases_to_start, 
+corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations['10_or_more_confirmed_cases'] = np.where(
+    corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations.confirmed >= num_cases_to_start, 
     True, False)
-corona_daily_by_country_totals_and_populations_aggregated['10_or_more_confirmed_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated.groupby(
+corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations['10_or_more_confirmed_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations.groupby(
     ['cases_Country/Region', '10_or_more_confirmed_cases'])['cases_date'].rank(method='dense')
 
 #flag for 25 cases
 num_cases_to_start = 25
-corona_daily_by_country_totals_and_populations_aggregated['25_or_more_confirmed_cases'] = np.where(
-    corona_daily_by_country_totals_and_populations_aggregated.confirmed >= num_cases_to_start,
+corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations['25_or_more_confirmed_cases'] = np.where(
+    corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations.confirmed >= num_cases_to_start,
     True, False)
-corona_daily_by_country_totals_and_populations_aggregated['25_or_more_confirmed_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated.groupby(
+corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations['25_or_more_confirmed_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations.groupby(
     ['cases_Country/Region', '25_or_more_confirmed_cases'])['cases_date'].rank(method='dense')
 
 #flag for 100 cases
 num_cases_to_start = 100
-corona_daily_by_country_totals_and_populations_aggregated['100_or_more_confirmed_cases'] = np.where(
-    corona_daily_by_country_totals_and_populations_aggregated.confirmed >= num_cases_to_start,
+corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations['100_or_more_confirmed_cases'] = np.where(
+    corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations.confirmed >= num_cases_to_start,
     True, False)
-corona_daily_by_country_totals_and_populations_aggregated['100_or_more_confirmed_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated.groupby(
+corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations['100_or_more_confirmed_cases_day_count'] = corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations.groupby(
     ['cases_Country/Region', '100_or_more_confirmed_cases'])['cases_date'].rank(method='dense')
 
 
 #%%Write the final aggregated dataframe to csv
-corona_daily_by_country_totals_and_populations_aggregated.to_csv(
+corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations.to_csv(
     output_final_directory + '/' + output_file_name_corona_case_with_meta_and_populations_and_flags,
     index=False)
 
-#%%
+#%% indicates completion
 print('all done here...')
 
 
-# %%
+#%%
