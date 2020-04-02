@@ -77,12 +77,14 @@ def update_country_name_in_population_lookup(
     population_lookup_df, 
     original_to_new_country_name_and_code_df):
 
-    print('------------------------------------------------------')
-    print("this is population_lookup_df")
-    print(population_lookup_df, '\n')
-    print('------------------------------------------------------')
-    print("this is original_to_new_country_name_and_code_df")
-    print(original_to_new_country_name_and_code_df, '\n')
+
+    if run_script_printouts_and_write_qc_files == True:
+        print('------------------------------------------------------')
+        print("this is population_lookup_df")
+        print(population_lookup_df, '\n')
+        print('------------------------------------------------------')
+        print("this is original_to_new_country_name_and_code_df")
+        print(original_to_new_country_name_and_code_df, '\n')
 
     final_df = population_lookup_df.merge(
         original_to_new_country_name_and_code_df,
@@ -90,10 +92,12 @@ def update_country_name_in_population_lookup(
         right_on='orig_countryName',
         how="left")
 
-    print('------------------------------------------------------')
-    print('\n', 'this is final DF after the merge... also written to csv...')
-    final_df.to_csv('__final_population_df_1_after_merge.csv')
-    print(final_df)
+
+    if run_script_printouts_and_write_qc_files == True:
+        print('------------------------------------------------------')
+        print('\n', 'this is final DF after the merge... also written to csv...')
+        final_df.to_csv(output_qc_directory + '/' + '__final_population_df_1_after_merge.csv')
+        print(final_df)
 
     #Here is a statement similar to coalesce which prioritizes the lookup value,
     # and if no lookup value is found, the original value is used in its place
@@ -102,10 +106,12 @@ def update_country_name_in_population_lookup(
     final_df['country_populations_countryCode_final'] = np.where(
         final_df["upd_countryName"].isnull(), final_df["country_populations_cca2"], final_df["upd_countryCode"])
 
-    print('------------------------------------------------------')
-    print("this is final_df after the second apply statement....also written to csv...")
-    final_df.to_csv('__final_population_df_2_after_coalesce.csv')
-    print(final_df)
+    if run_script_printouts_and_write_qc_files == True:
+        print('------------------------------------------------------')
+        print("this is final_df after the second apply statement....also written to csv...")
+        final_df.to_csv(output_qc_directory + '/' +
+                        '__final_population_df_2_after_coalesce.csv')
+        print(final_df)
 
     #Aggregate adjusted population table to ensure there are no duplicates
     final_df_aggregated = final_df.groupby([
@@ -115,10 +121,12 @@ def update_country_name_in_population_lookup(
            country_populations_area=('country_populations_area', 'sum')
            ).reset_index()
 
-    print('------------------------------------------------------')
-    print('\n', 'this is final DF after the aggregation...')
-    final_df_aggregated.to_csv('__final_population_df_3_after_aggregation.csv')
-    print(final_df_aggregated)
+    if run_script_printouts_and_write_qc_files == True:
+        print('------------------------------------------------------')
+        print('\n', 'this is final DF after the aggregation...')
+        final_df_aggregated.to_csv(
+            output_qc_directory + '/' + '__final_population_df_3_after_aggregation.csv')
+        print(final_df_aggregated)
 
     #calculate density
     final_df_aggregated['country_populations_Density'] = final_df_aggregated['country_populations_pop2020'] / final_df_aggregated['country_populations_area']
@@ -131,10 +139,11 @@ def update_country_name_in_population_lookup(
         ascending=False, 
         method='dense').astype(int)
 
-    print('------------------------------------------------------')
-    print('this is final DF after the updated calculations...')
-    final_df_aggregated.to_csv('__final_population_df_4_after_all_is_set_and_done.csv')
-    print(final_df_aggregated)
+    if run_script_printouts_and_write_qc_files == True:
+        print('------------------------------------------------------')
+        print('this is final DF after the updated calculations...')
+        final_df_aggregated.to_csv(output_qc_directory + '/' + '__final_population_df_4_after_all_is_set_and_done.csv')
+        print(final_df_aggregated)
 
     return final_df_aggregated
 
@@ -193,6 +202,7 @@ def download_csv_from_kaggle(dataset, filename, path, force):
 
 def download_stats_canada_provincial_populations(
     output_file_name='canada_province_population_data.csv',
+    population_data_directory='population_data',
     stats_canada_data_year='2016'):
     '''
     Example URL: https://www12.statcan.gc.ca/rest/census-recensement/CPR2016.json?lang=E&dguid=2016A000224&topic=13&stat=0
@@ -232,7 +242,7 @@ def download_stats_canada_provincial_populations(
 
     #concatenate the list of dfs 
     df = pd.concat(list_of_dfs, ignore_index=True)
-    df.to_csv(output_file_name)
+    df.to_csv(population_data_directory + '/' + output_file_name)
     print(df)
 
     return(df)
@@ -608,6 +618,7 @@ if run_script_printouts_and_write_qc_files == True:
 #%% Download and merge the Canada Province/Territory populations
 canada_province_territory_populations = download_stats_canada_provincial_populations(
     output_file_name='canada_province_population_data.csv',
+    population_data_directory=population_data_directory,
     stats_canada_data_year='2016').add_prefix('canada_')
 
 corona_daily_by_country_totals_and_populations_aggregated_with_canada_province_populations = corona_daily_by_country_totals_and_populations_aggregated.merge(
