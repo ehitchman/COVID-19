@@ -5,5 +5,7 @@ kaggle.json
 .httr-oauth
 ga_account_list_for_lookup.xlsx
 lookup_tables/ga_account_list_for_lookup.xlsx
-
+output/
 cpreporting_gcp_client.json
+.RData
+.Rhistory
