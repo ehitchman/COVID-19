@@ -9,7 +9,7 @@ import datetime
 
 ################################################################################
 #US or Global Pull? TODO -- adjust for 'both' ##################################
-input_option_us_or_global = 'us'
+input_option_us_or_global = 'global'
 ################################################################################
 ################################################################################
 
@@ -221,7 +221,7 @@ cases_data_daily_by_country_and_populations_aggregated_with_canada_province_popu
 
 #%%Write the final aggregated dataframe to csv
 cases_data_daily_by_country_and_populations_aggregated_with_canada_province_populations_and_flags.to_csv(
-    output_directory_final_data + '/' + output_file_name_corona_case_with_meta_and_populations_and_flags,
+    output_directory_final_data + '/' + input_option_us_or_global + "_" + output_file_name_corona_case_with_meta_and_populations_and_flags,
     index=False)
 
 #%% indicates completion
