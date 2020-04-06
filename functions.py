@@ -29,6 +29,10 @@ def csv_contents_to_pandas_df(directory_name, file_name):
     return temp_df
 
 
+def (data):
+
+
+
 def distance_between_coordinates(lat1, lon1, lat2, lon2):
     '''Function to Calculate the distance between 2 sets of coordinates'''
     p = 0.017453292519943295  # Pi/180
@@ -78,7 +82,7 @@ def add_row_to_population_lookup(
     return temp_concatenated_df
 
 
-def update_country_name_in_population_lookup(
+def update_country_name_in_country_population_lookup(
         population_lookup_df,
         original_to_new_country_name_and_code_df,
         run_script_printouts_and_write_qc_files=True):
@@ -97,6 +101,8 @@ def update_country_name_in_population_lookup(
         final_df["upd_countryName"].isnull(), final_df["country_populations_cca2"], final_df["upd_countryCode"])
 
     #Aggregate adjusted population table to ensure there are no duplicates
+    # Note, that we use sum() because there are multiple provinces/states per
+    # country.
     final_df_aggregated = final_df.groupby([
         'country_populations_countryCode_final',
         'country_populations_countryName_final'
@@ -104,11 +110,11 @@ def update_country_name_in_population_lookup(
            country_populations_area=('country_populations_area', 'sum')
            ).reset_index()
 
-    #calculate density
+    #calculate the density
     final_df_aggregated['country_populations_Density'] = final_df_aggregated['country_populations_pop2020'] / \
         final_df_aggregated['country_populations_area']
 
-    #Calculate world percentage
+    #Calculate the updated world percentage
     final_df_aggregated['country_populations_worldPercentage'] = (
         final_df_aggregated['country_populations_pop2020'] / final_df_aggregated['country_populations_pop2020'].sum()).astype(float)
 
@@ -191,8 +197,8 @@ def download_stats_canada_provincial_populations(
     df_geouid_noncanada = df_geouid[df_geouid['PROV_TERR_NAME_NOM'] != 'Canada']
     list_geoid_noncanada = df_geouid_noncanada['GEO_UID']
 
+    #TODO -- may be redundant 
     def pull_populations_from_stats_canada_based_on_dguid(dguid):
-
         print('---------')
         basestatscanurl = 'https://www12.statcan.gc.ca/rest/census-recensement/'
         finalurl = basestatscanurl + 'CPR2016.json' + '?' + 'lang=E' + \
@@ -225,7 +231,7 @@ def read_cases_data(
         input_directory_corona_cases,
         us_or_global='global',
         case_types = ['deaths','confirmed','recovered']):
-
+    
     #test
     # input_directory_corona_cases = 'csse_covid_19_data\csse_covid_19_time_series'
     # us_or_global = 'US'
@@ -259,10 +265,6 @@ def read_cases_data(
         file_name = 'time_series_covid19_' + case_types[i] + '_' + us_or_global + '.csv'
         temp_df = pd.read_csv(input_directory_corona_cases + '\\' + file_name)
 
-        print('print df after initial read')
-        print(temp_df.dtypes)
-        print('---------------------------------------------------')
-
         #Grab the populations from the deaths file, use it to populate
         # populations in other files
         if case_types[i] == 'deaths' and us_or_global.lower() == 'us':
@@ -275,12 +277,6 @@ def read_cases_data(
                 how='left',
                 on='Combined_Key',
                 validate="many_to_one")
-
-        print('print df after initial read + joining population -- confirmed',
-            'table for the US should have populations, but no other tables',
-            'should have population')
-        print(temp_df.dtypes)
-        print('---------------------------------------------------')
 
         #identify non date columns by iterating through each
         temp_column_names = list(temp_df.columns)
@@ -302,10 +298,6 @@ def read_cases_data(
             else:                
                 temp_column_names_is_not_date_df.at[j, 'columnIsDate'] = True
 
-        print('print after try/catch')
-        print(temp_column_names_is_not_date_df.dtypes)
-        print('---------------------------------------------------')
-
         #Filter list of columns to non-date column names to assist with melt
         temp_column_names_is_not_date_list = temp_column_names_is_not_date_df['columnName'][
             temp_column_names_is_not_date_df['columnIsDate'] == False].to_list()
@@ -319,10 +311,6 @@ def read_cases_data(
                 'value': case_types[i],
                 'variable': 'date'},
             inplace=True)
-
-        print('print after melt')
-        print(temp_df_melted.dtypes)
-        print('---------------------------------------------------')
 
         #update data type to datetime for date columns
         temp_df_melted['date'] = pd.to_datetime(temp_df_melted['date'])
@@ -340,10 +328,6 @@ def read_cases_data(
         temp_df_melted = temp_df_melted.reindex(
             columns=temp_df_melted.columns.tolist() + temp_missing_columns,
             fill_value=0)
-        
-        print('for case_types[i] data frame')
-        print(temp_df_melted.dtypes)
-        print('---------------------------------------------------')
 
         #union dataframes
         if i == 0:
@@ -352,14 +336,12 @@ def read_cases_data(
             temp_dfs_melted_unioned = pd.concat(
                 [temp_dfs_melted_unioned, temp_df_melted], ignore_index=True)
 
-    print('all case_types data frame post-melt')
-    print(temp_dfs_melted_unioned.dtypes)
-    print('---------------------------------------------------')
-
-    #identify the aggregation columns & then aggregate case types
+    #identify the aggregation columns
     temp_dfs_melted_uniioned_aggregation_columns = list(set(
         temp_column_names_is_not_date_list) - set(case_types)) + ['date']
 
+    #aggregate case types based on the aggregation columns idetnifided
+    #TODO -- clean up the 'global' vs. 'us' files prior to transforming
     if us_or_global.lower() == 'global':
         temp_dfs_melted_unioned_aggregated = temp_dfs_melted_unioned.groupby(
             temp_dfs_melted_uniioned_aggregation_columns
@@ -384,6 +366,12 @@ def read_cases_data(
     elif us_or_global.lower() == 'us':
         temp_dfs_melted_unioned_aggregated['lat_long_id'] = temp_dfs_melted_unioned_aggregated.groupby(
             ['Lat', 'Long_']).ngroup()
+
+    #prior to adding a prefix, fix column names based on known discrepancies
+    column_rename = {
+        'Long_':'Long',
+        'llat_L'|ong'}s
+    temp_dfs_melted_unioned_aggregated['Long_']
 
     #add cases_ prefix to make it esaier to determine where each variable comes from
     temp_dfs_melted_unioned_aggregated = temp_dfs_melted_unioned_aggregated.add_prefix(

@@ -77,7 +77,7 @@ data = {'orig_countryName': ['United States', 'Macedonia', 'South Korea',
 temp_country_replacement_df = pd.DataFrame(data)
 
 #Update country names in the population data file using the df created from the dict
-population_data_with_added_countries_updated_country_names = functions.update_country_name_in_population_lookup(
+population_data_with_added_countries_updated_country_names = functions.update_country_name_in_country_population_lookup(
     population_lookup_df = population_data,
     original_to_new_country_name_and_code_df = temp_country_replacement_df)
 
@@ -109,23 +109,17 @@ country_to_continent_mapping_added_rows = functions.add_row_to_continent_lookup(
     CapitalLongitude=None,
     CaptialLatitude=None,
     CountryCode='None',
-    ContinentName='None'
-)
+    ContinentName='None')
 
 #Add missing rows to country_to_continent_mapping file
-print('------------------------------------------------------')
 population_data_with_added_countries_updated_country_names_with_continent = population_data_with_added_countries_updated_country_names.merge(
     country_to_continent_mapping,
     left_on='country_populations_countryCode_final',
     right_on='continent_alpha-2')
-print('population_data_with_added_countries_updated_country_names_with_continent number of countries:',
-    len(population_data_with_added_countries_updated_country_names_with_continent.index))
 
 #%% Merge the daily case totals and country population files and write to csv
 #TODO -- clean up the 'global' vs. 'us' files prior to transforming (in functions.py)
-
 output_file_name_corona_case_with_meta_and_populations = 'corona_cases_daily_with_populations.csv'
-
 if input_option_us_or_global.lower() == 'us':
     cases_data_daily_by_country_and_populations = cases_data_daily_by_country.merge(
         population_data_with_added_countries_updated_country_names_with_continent,
