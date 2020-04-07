@@ -74,12 +74,10 @@ data = {'orig_countryName': ['United States', 'Macedonia', 'South Korea',
                             'France', 'France', 'France', 'France'],
         'upd_countryCode': ['US', 'MK', 'KR', 'CZ', 'CD', 'CI',
                             'FR', 'FR', 'FR', 'FR', 'FR']}
-temp_country_replacement_df = pd.DataFrame(data)
-
 #Update country names in the population data file using the df created from the dict
 population_data_with_added_countries_updated_country_names = functions.update_country_name_in_country_population_lookup(
     population_lookup_df = population_data,
-    original_to_new_country_name_and_code_df = temp_country_replacement_df)
+    original_to_new_country_name_and_code_df=pd.DataFrame(data))
 
 #Here we identify the continent name for each country and merge it with the 
 # population data set
@@ -92,6 +90,7 @@ country_to_continent_mapping = functions.download_csv_from_kaggle(
     force=False).add_prefix("continent_")
 
 #build the data frame for joining and reconciliing country names
+#TODO -- integrate the dictionary format with the function below (functions.add_row_to_continent_lookup)
 data = {'CountryName': ['Cruise Ship'],
         'CapitalName': ['None'],
         'CapitalLongitude': [None],
@@ -118,18 +117,12 @@ population_data_with_added_countries_updated_country_names_with_continent = popu
     right_on='continent_alpha-2')
 
 #%% Merge the daily case totals and country population files and write to csv
-#TODO -- clean up the 'global' vs. 'us' files prior to transforming (in functions.py)
 output_file_name_corona_case_with_meta_and_populations = 'corona_cases_daily_with_populations.csv'
-if input_option_us_or_global.lower() == 'us':
-    cases_data_daily_by_country_and_populations = cases_data_daily_by_country.merge(
-        population_data_with_added_countries_updated_country_names_with_continent,
-        left_on='cases_Country_Region',
-        right_on='country_populations_countryName_final')
-elif input_option_us_or_global.lower() == 'global':
-    cases_data_daily_by_country_and_populations = cases_data_daily_by_country.merge(
-        population_data_with_added_countries_updated_country_names_with_continent,
-        left_on='cases_Country/Region', 
-        right_on='country_populations_countryName_final')
+print(cases_data_daily_by_country.columns)
+cases_data_daily_by_country_and_populations = cases_data_daily_by_country.merge(
+    population_data_with_added_countries_updated_country_names_with_continent,
+    left_on='cases_Country_Region',
+    right_on='country_populations_countryName_final')
 
 #This is to help identify the date type (for pp)
 cases_data_daily_by_country_and_populations['cases_date'] = pd.to_datetime(
@@ -146,10 +139,11 @@ if input_option_us_or_global.lower() == 'us':
         'cases_date',
         'cases_max_date',
         'cases_Lat',
-        'cases_Long_',
+        'cases_Long',
         'cases_lat_long_id',
         'cases_Country_Region',
         'cases_Province_State',
+        'cases_Admin2',
         'country_populations_pop2020',
         'country_populations_area',
         'country_populations_Density',
@@ -168,8 +162,8 @@ elif input_option_us_or_global.lower() == 'global':
         'cases_Lat',
         'cases_Long',
         'cases_lat_long_id',
-        'cases_Country/Region',
-        'cases_Province/State',
+        'cases_Country_Region',
+        'cases_Province_State',
         'country_populations_pop2020',
         'country_populations_area',
         'country_populations_Density',
@@ -188,30 +182,18 @@ canada_province_territory_populations = functions.download_stats_canada_provinci
     output_file_name='canada_province_population_data.csv',
     input_directory_population_data=input_directory_population_data,
     stats_canada_data_year='2016').add_prefix('canada_')
-
-#TODO -- clean up the 'global' vs. 'us' files prior to transforming (in functions.py)
-if input_option_us_or_global.lower() == 'us':
-    cases_data_daily_by_country_and_populations_aggregated_with_canada_province_populations = cases_data_daily_by_country_and_populations_aggregated.merge(
-        canada_province_territory_populations,
-        how='left',
-        left_on='cases_Province_State',
-        right_on='canada_PROV_TERR_NAME_NOM')
-elif input_option_us_or_global.lower() == 'global':
-    cases_data_daily_by_country_and_populations_aggregated_with_canada_province_populations = cases_data_daily_by_country_and_populations_aggregated.merge(
-        canada_province_territory_populations,
-        how='left',
-        left_on='cases_Province/State',
-        right_on='canada_PROV_TERR_NAME_NOM')
-
-print('finished joining provincial population data')
-print('-----------------------------------------')
+cases_data_daily_by_country_and_populations_aggregated_with_canada_province_populations = cases_data_daily_by_country_and_populations_aggregated.merge(
+    canada_province_territory_populations,
+    how='left',
+    left_on='cases_Province_State',
+    right_on='canada_PROV_TERR_NAME_NOM')
 
 #%% Add a flag for when total confirmed cases reached N for each country and
 # then Assign a sequential number to each date based on the
 #Name of output file
 cases_data_daily_by_country_and_populations_aggregated_with_canada_province_populations_and_flags = functions.add_flag_for_n_cases_date(
     cases_dataframe=cases_data_daily_by_country_and_populations_aggregated_with_canada_province_populations,
-     n_list=[10, 25, 100])
+     n_list=[10, 25, 100, 1000])
 
 #%%Write the final aggregated dataframe to csv
 cases_data_daily_by_country_and_populations_aggregated_with_canada_province_populations_and_flags.to_csv(
