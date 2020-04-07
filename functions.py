@@ -29,9 +29,8 @@ def csv_contents_to_pandas_df(directory_name, file_name):
     return temp_df
 
 
-def (data):
-
-
+def cleanse_data(data):
+    return None
 
 def distance_between_coordinates(lat1, lon1, lat2, lon2):
     '''Function to Calculate the distance between 2 sets of coordinates'''
@@ -265,13 +264,12 @@ def read_cases_data(
         file_name = 'time_series_covid19_' + case_types[i] + '_' + us_or_global + '.csv'
         temp_df = pd.read_csv(input_directory_corona_cases + '\\' + file_name)
 
-        #Grab the populations from the deaths file, use it to populate
-        # populations in other files
+        #Grab and merge the populations from the 'deaths' file, use it to 
+        # populate populations in other files
         if case_types[i] == 'deaths' and us_or_global.lower() == 'us':
             temp_population_lookup = temp_df[[
                 'Combined_Key', 'Population']].drop_duplicates()
         elif us_or_global.lower() == 'us':
-            #Merge the population from the 'deaths' file with every other file
             temp_df = temp_df.merge(
                 temp_population_lookup,
                 how='left',
@@ -293,7 +291,6 @@ def read_cases_data(
                 elif us_or_global.lower() == 'global':
                     result = datetime.datetime.strptime( temp_column_names[j], '%m/%d/%y')
             except Exception as e:
-                print(e)
                 temp_column_names_is_not_date_df.at[j, 'columnIsDate'] = False
             else:                
                 temp_column_names_is_not_date_df.at[j, 'columnIsDate'] = True
@@ -341,7 +338,9 @@ def read_cases_data(
         temp_column_names_is_not_date_list) - set(case_types)) + ['date']
 
     #aggregate case types based on the aggregation columns idetnifided
-    #TODO -- clean up the 'global' vs. 'us' files prior to transforming
+    #TODO -- clean up the 'global' vs. 'us' files prior to transforming or 
+    # automate the building of the agg() statement based on the set() of case 
+    # types available
     if us_or_global.lower() == 'global':
         temp_dfs_melted_unioned_aggregated = temp_dfs_melted_unioned.groupby(
             temp_dfs_melted_uniioned_aggregation_columns
@@ -349,7 +348,6 @@ def read_cases_data(
                 confirmed=('confirmed', 'sum'),
                 deaths=('deaths', 'sum')
                 ).reset_index()
-
     if us_or_global.lower() == 'us':
         temp_dfs_melted_unioned_aggregated = temp_dfs_melted_unioned.groupby(
             temp_dfs_melted_uniioned_aggregation_columns
@@ -357,21 +355,20 @@ def read_cases_data(
               deaths=('deaths', 'sum')
               ).reset_index()
 
-    #add a unique id for each unique combination of latitude/longitude
-    #TODO -- clean up the 'global' vs. 'us' files prior to transforming
-    if us_or_global.lower() == 'global':
-        temp_dfs_melted_unioned_aggregated['lat_long_id'] = temp_dfs_melted_unioned_aggregated.groupby(
-            ['Lat', 'Long']).ngroup()
-
-    elif us_or_global.lower() == 'us':
-        temp_dfs_melted_unioned_aggregated['lat_long_id'] = temp_dfs_melted_unioned_aggregated.groupby(
-            ['Lat', 'Long_']).ngroup()
-
-    #prior to adding a prefix, fix column names based on known discrepancies
+    #prior to adding a prefix and generating a lat_long_id, fix column names
+    # based on known discrepancies
     column_rename = {
-        'Long_':'Long',
-        'llat_L'|ong'}s
-    temp_dfs_melted_unioned_aggregated['Long_']
+        'Long_': 'Long',
+        'Country/Region': 'Country_Region',
+        'Province/State': 'Province_State'
+    }
+    temp_dfs_melted_unioned_aggregated.rename(
+        columns=column_rename,
+        inplace=True)
+
+    #add a unique id for each unique combination of latitude/longitude
+    temp_dfs_melted_unioned_aggregated['lat_long_id'] = temp_dfs_melted_unioned_aggregated.groupby(
+        ['Lat', 'Long']).ngroup()
 
     #add cases_ prefix to make it esaier to determine where each variable comes from
     temp_dfs_melted_unioned_aggregated = temp_dfs_melted_unioned_aggregated.add_prefix(
