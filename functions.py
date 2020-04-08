@@ -242,17 +242,15 @@ def read_cases_data(
         content = us_or_global.lower()
         if ('global' and 'us') not in content:
             raise ValueError("error, you must use 'global' or 'us' as an input")
-    except ValueError as e:
-        print(e)
-    except Exception as e:
+    except (ValueError, Exception) as e:
         print(e)
     else:
         if us_or_global.lower() == 'global':
-            us_or_global = 'global'
+            us_or_global = us_or_global.lower()
             case_types = case_types
             pass
         elif us_or_global.lower() == 'us':
-            us_or_global = 'US'
+            us_or_global = us_or_global.upper()
             case_types = ['deaths'] + list(set(case_types) - set(['deaths']))
             case_types.remove('recovered')
             pass                    
@@ -361,7 +359,7 @@ def read_cases_data(
         'Long_': 'Long',
         'Country/Region': 'Country_Region',
         'Province/State': 'Province_State'
-    }
+        }
     temp_dfs_melted_unioned_aggregated.rename(
         columns=column_rename,
         inplace=True)
