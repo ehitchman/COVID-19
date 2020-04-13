@@ -9,7 +9,7 @@ import datetime
 
 ################################################################################
 #US or Global Pull? TODO -- adjust for 'both' ##################################
-input_option_us_or_global = 'global'
+input_option_us_or_global = 'us'
 ################################################################################
 ################################################################################
 
@@ -39,10 +39,15 @@ num_to_lookup_case_coordinates = None
 run_script_printouts_and_write_qc_files = False
 
 #Read data in from the forked repo, process it and write it to the output folder
-cases_data_daily_by_country = functions.read_cases_data(
+dict_cases_data_and_dimension_columns = functions.read_cases_data(
     input_directory_corona_cases=input_directory_corona_cases,
     us_or_global=input_option_us_or_global,
     case_types=input_case_types)
+
+df_cases_data = dict_cases_data_and_dimension_columns[
+    'df_cases_data']
+list_cases_data_dimension_columns = dict_cases_data_and_dimension_columns[
+    'list_cases_data_dimension_columns']
 
 #%% This is where we read our population file and merge it with the corona cases
 # Here we also 1) add rows to our population table and 2) adjust the names of 
@@ -118,8 +123,7 @@ population_data_with_added_countries_updated_country_names_with_continent = popu
 
 #%% Merge the daily case totals and country population files and write to csv
 output_file_name_corona_case_with_meta_and_populations = 'corona_cases_daily_with_populations.csv'
-print(cases_data_daily_by_country.columns)
-cases_data_daily_by_country_and_populations = cases_data_daily_by_country.merge(
+cases_data_daily_by_country_and_populations = df_cases_data.merge(
     population_data_with_added_countries_updated_country_names_with_continent,
     left_on='cases_Country_Region',
     right_on='country_populations_countryName_final')
@@ -132,18 +136,12 @@ cases_data_daily_by_country_and_populations['cases_date'] = pd.to_datetime(
 cases_data_daily_by_country_and_populations['cases_max_date'] = max(
     cases_data_daily_by_country_and_populations['cases_date'])
 
+
 #%%aggregate for row reduction
 #TODO -- clean up the 'global' vs. 'us' files prior to transforming (in functions.py)
 if input_option_us_or_global.lower() == 'us':
-    cases_data_daily_by_country_and_populations_aggregated = cases_data_daily_by_country_and_populations.groupby([
-        'cases_date',
-        'cases_max_date',
-        'cases_Lat',
-        'cases_Long',
-        'cases_lat_long_id',
-        'cases_Country_Region',
-        'cases_Province_State',
-        'cases_Admin2',
+    cases_data_daily_by_country_and_populations_aggregated = cases_data_daily_by_country_and_populations.groupby(
+        list_cases_data_dimension_columns+[
         'country_populations_pop2020',
         'country_populations_area',
         'country_populations_Density',
@@ -156,14 +154,8 @@ if input_option_us_or_global.lower() == 'us':
         cases_deaths=('cases_deaths', 'sum')
         ).reset_index()
 elif input_option_us_or_global.lower() == 'global':
-    cases_data_daily_by_country_and_populations_aggregated = cases_data_daily_by_country_and_populations.groupby([
-        'cases_date',
-        'cases_max_date',
-        'cases_Lat',
-        'cases_Long',
-        'cases_lat_long_id',
-        'cases_Country_Region',
-        'cases_Province_State',
+    cases_data_daily_by_country_and_populations_aggregated = cases_data_daily_by_country_and_populations.groupby(
+        list_cases_data_dimension_columns+[
         'country_populations_pop2020',
         'country_populations_area',
         'country_populations_Density',
@@ -177,28 +169,41 @@ elif input_option_us_or_global.lower() == 'global':
         cases_deaths=('cases_deaths', 'sum')
         ).reset_index()
 
-#%% Download and merge the Canada Province/Territory populations
-canada_province_territory_populations = functions.download_stats_canada_provincial_populations(
-    output_file_name='canada_province_population_data.csv',
-    input_directory_population_data=input_directory_population_data,
-    stats_canada_data_year='2016').add_prefix('canada_')
-cases_data_daily_by_country_and_populations_aggregated_with_canada_province_populations = cases_data_daily_by_country_and_populations_aggregated.merge(
-    canada_province_territory_populations,
-    how='left',
-    left_on='cases_Province_State',
-    right_on='canada_PROV_TERR_NAME_NOM')
-
+#%% Download and merge the StatsCanada Province/Territory populations
+print('-----------------------------------------------------------------')
+print('Download and merge the StatsCanada Province/Territory populations if the pull \
+    is for the US')
+if input_option_us_or_global == 'global':
+    #get population data from statscan
+    canada_province_territory_populations = functions.download_stats_canada_provincial_populations(
+        output_file_name='canada_province_population_data.csv',
+        input_directory_population_data=input_directory_population_data,
+        stats_canada_data_year='2016').add_prefix('canada_')
+    #merge w/ populatoins
+    cases_data_daily_by_country_and_populations_aggregated_final = cases_data_daily_by_country_and_populations_aggregated.merge(
+        canada_province_territory_populations,
+        how='left',
+        left_on='cases_Province_State',
+        right_on='canada_PROV_TERR_NAME_NOM')
+    print('Completed download and merge of StatsCanada Province/Territory Populations')
+elif input_option_us_or_global == 'us':
+    cases_data_daily_by_country_and_populations_aggregated_final = cases_data_daily_by_country_and_populations_aggregated
+    print('Did not pull any statsa can data, this pull is for the US only....')
+print('-----------------------------------------------------------------')
 #%% Add a flag for when total confirmed cases reached N for each country and
 # then Assign a sequential number to each date based on the
 #Name of output file
-cases_data_daily_by_country_and_populations_aggregated_with_canada_province_populations_and_flags = functions.add_flag_for_n_cases_date(
-    cases_dataframe=cases_data_daily_by_country_and_populations_aggregated_with_canada_province_populations,
-     n_list=[10, 25, 100, 1000])
+cases_data_daily_by_country_and_populations_aggregated_and_flags = functions.add_flag_for_n_cases_date(
+    cases_dataframe=cases_data_daily_by_country_and_populations_aggregated_final,
+    n_list=[10, 25, 100, 1000]
+    )
 
 #%%Write the final aggregated dataframe to csv
-cases_data_daily_by_country_and_populations_aggregated_with_canada_province_populations_and_flags.to_csv(
+cases_data_daily_by_country_and_populations_aggregated_and_flags.to_csv(
     output_directory_final_data + '/' + input_option_us_or_global + "_" + output_file_name_corona_case_with_meta_and_populations_and_flags,
     index=False)
+
+cases_data_daily_by_country_and_populations_aggregated_and_flags.dtypes
 
 #%% indicates completion
 print('all done here...')
