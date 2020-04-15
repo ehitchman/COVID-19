@@ -10,3 +10,4 @@ cpreporting_gcp_client.json
 .RData
 .Rhistory
 qc/
+__cases_dataframe.csv
