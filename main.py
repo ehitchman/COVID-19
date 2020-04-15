@@ -9,7 +9,7 @@ import datetime
 
 ################################################################################
 #US or Global Pull? TODO -- adjust for 'both' ##################################
-input_option_us_or_global = 'us'
+input_option_us_or_global = 'global'
 ################################################################################
 ################################################################################
 
@@ -169,43 +169,59 @@ elif input_option_us_or_global.lower() == 'global':
         cases_deaths=('cases_deaths', 'sum')
         ).reset_index()
 
+
 #%% Download and merge the StatsCanada Province/Territory populations
-print('-----------------------------------------------------------------')
-print('Download and merge the StatsCanada Province/Territory populations if the pull \
-    is for the US')
+print('----------------------------------------')
+print('Download and merge the StatsCanada Province/Territory populations if the run is for the US\n')
 if input_option_us_or_global == 'global':
-    #get population data from statscan
+    #Get population data from statscan
     canada_province_territory_populations = functions.download_stats_canada_provincial_populations(
         output_file_name='canada_province_population_data.csv',
-        input_directory_population_data=input_directory_population_data,
+        output_directory_population_data=input_directory_population_data,
         stats_canada_data_year='2016').add_prefix('canada_')
-    #merge w/ populatoins
+    #Merge w/ populatoins
     cases_data_daily_by_country_and_populations_aggregated_final = cases_data_daily_by_country_and_populations_aggregated.merge(
         canada_province_territory_populations,
         how='left',
         left_on='cases_Province_State',
-        right_on='canada_PROV_TERR_NAME_NOM')
-    print('Completed download and merge of StatsCanada Province/Territory Populations')
+        right_on='canada_PROV_TERR_NAME_NOM')        
+    print('Outome: Completed download and merge of StatsCanada Province/Territory Populations\n')
+
 elif input_option_us_or_global == 'us':
     cases_data_daily_by_country_and_populations_aggregated_final = cases_data_daily_by_country_and_populations_aggregated
-    print('Did not pull any statsa can data, this pull is for the US only....')
-print('-----------------------------------------------------------------')
+    print('Outome: Did not pull any stats can data, this pull is for the US only....', '\n')
+
+
 #%% Add a flag for when total confirmed cases reached N for each country and
 # then Assign a sequential number to each date based on the
 #Name of output file
 cases_data_daily_by_country_and_populations_aggregated_and_flags = functions.add_flag_for_n_cases_date(
     cases_dataframe=cases_data_daily_by_country_and_populations_aggregated_final,
-    n_list=[10, 25, 100, 1000]
+    n_list=[10, 25, 100, 1000])
+
+#Read in corona testing data by state.  Only avaialble in the US from                       
+# coronaproject.com
+#TODO -- merge with the rest of the data
+#TODO -- update date format from yyyymmdd to date
+#TODO -- State name format is 2-letter abbreviation, though shouldn't be an issue 
+#TODO -- Includes FIPS code
+#TODO -- Includes "hospitalizations", "on ventialtor" (cumulative + current)
+#TODO -- For "testing" numbers, includes positives and negatives
+corona_testing_data_by_state = download_corona_tracking_project_us_data(
+    api_endpoint='/v1/states/daily.json',
+    output_directory_name = 'testing_data',
+    output_file_name = 'testing_daily_by_state.csv'
     )
 
 #%%Write the final aggregated dataframe to csv
 cases_data_daily_by_country_and_populations_aggregated_and_flags.to_csv(
     output_directory_final_data + '/' + input_option_us_or_global + "_" + output_file_name_corona_case_with_meta_and_populations_and_flags,
     index=False)
-
 cases_data_daily_by_country_and_populations_aggregated_and_flags.dtypes
+
 
 #%% indicates completion
 print('all done here...')
+
 
 #%%
