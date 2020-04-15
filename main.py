@@ -9,7 +9,7 @@ import datetime
 
 ################################################################################
 #US or Global Pull? TODO -- adjust for 'both' ##################################
-input_option_us_or_global = 'global'
+input_option_us_or_global = 'us'
 ################################################################################
 ################################################################################
 
@@ -189,7 +189,7 @@ if input_option_us_or_global == 'global':
 
 elif input_option_us_or_global == 'us':
     cases_data_daily_by_country_and_populations_aggregated_final = cases_data_daily_by_country_and_populations_aggregated
-    print('Outome: Did not pull any stats can data, this pull is for the US only....', '\n')
+    print('Outome: Did not pull any stats can data, the current data pull references the US only....', '\n')
 
 
 #%% Add a flag for when total confirmed cases reached N for each country and
