@@ -24,9 +24,10 @@ import pprint
 def csv_contents_to_pandas_df(directory_name, file_name):
     '''Function to read and assign csv file contents to pandas df'''
 
-    print('\n')
-    print("directory name:", directory_name)
-    print("file name:", file_name)
+    print('---------------------------------------------')
+    print("READING CSV INTO PANDAS DF:")
+    print("Input directory name:", directory_name)
+    print("Input file name:", file_name)
     print("file object:", directory_name + '/' +
           file_name.replace('.csv.csv', '').replace('.csv', '') + '.csv')
     try:
@@ -184,21 +185,63 @@ def download_csv_from_kaggle(dataset, filename, path, force):
         temp_dataset = csv_contents_to_pandas_df(
             directory_name=path, file_name=filename)
     print('---------------------------------------')
-    print('\n')
-    print('Downloaded from Kaggle')
+    print('DOWNLOADING DATA FROM KAGGLE:')
     print('Data set:', dataset)
-    print('Output Filename:', filename)
-    print('Output File Location:', path)
+    print('Output directory name:', path)
+    print('Output filename:', filename)
     print('\n')
     return temp_dataset
 
+
+def download_corona_tracking_project_us_data(
+    api_endpoint='/v1/states/daily.json',
+    output_directory_name = 'testing_data',
+    output_file_name = 'testing_daily_by_state.csv'
+    ):
+
+    print("DOWNLOAD CORONA TEST DATA FROM CORONA TRACKING PROJECT:")
+    print('Output directory name:',output_directory_name)
+    print('Output file name:', output_file_name)
+
+    #Generate the final url to retrieve json formatted data from the endpoing and 
+    # then modify it so it can be used as a pd data frame
+    basecoronaprojectnurl = 'https://covidtracking.com/api'
+    finalurl = basecoronaprojectnurl + api_endpoint
+    response = requests.get(finalurl)
+    response_text = response.text.replace('//', '')
+    response_json = json.loads(response_text)
+
+    #create data frame
+    df_response_json = pd.DataFrame(response_json)
+    list_response_json_columns = df_response_json.columns 
+    print('-----------')
+    print('This is the data frame captured from:', api_endpoint)
+    print('\n')
+    print(df_response_json)
+    print('\n')
+
+    #write to csv...
+    df_response_json.to_csv(output_directory_name+'/'+output_file_name)
+
+    return {
+        'df_corona_testing_data': df_response_json,
+        'list_corona_testing_data_columns': list_response_json_columns
+        }
+
+
 def download_stats_canada_provincial_populations(
     output_file_name='canada_province_population_data.csv',
-    input_directory_population_data='population_data',
-    stats_canada_data_year='2016'):
+    output_directory_population_data='population_data',
+    stats_canada_data_year='2016'
+    ):
     '''
     Example URL: https://www12.statcan.gc.ca/rest/census-recensement/CPR2016.json?lang=E&dguid=2016A000224&topic=13&stat=0
     '''
+
+    print('DOWNLOADING DATA FROM STATS CANADA:')
+    print('Data year:', stats_canada_data_year)
+    print('Output file name:', output_file_name)
+    print('Output directory name:', output_directory_population_data)
 
     #Get the geouid from statscan
     basestatscanurl = 'https://www12.statcan.gc.ca/rest/census-recensement/'
@@ -211,6 +254,7 @@ def download_stats_canada_provincial_populations(
 
     df_geouid_noncanada = df_geouid[df_geouid['PROV_TERR_NAME_NOM'] != 'Canada']
     list_geoid_noncanada = df_geouid_noncanada['GEO_UID']
+
 
     #TODO -- may be redundant 
     def pull_populations_from_stats_canada_based_on_dguid(dguid):
@@ -233,9 +277,9 @@ def download_stats_canada_provincial_populations(
 
     #concatenate the list of dfs
     df = pd.concat(list_of_dfs, ignore_index=True)
-    df.to_csv(input_directory_population_data + '/' + output_file_name)
+    df.to_csv(output_directory_population_data + '/' + output_file_name)
     print('------------------------------')
-    print('Completed: Concatenated StatsCanada files')
+    print('Completed: Download and concatenation of StatsCanada files')
     print('\n')
     return(df)
 
@@ -245,11 +289,6 @@ def read_cases_data(
     input_directory_corona_cases,
     us_or_global,
     case_types = ['deaths','confirmed','recovered']):
-    
-    #test
-    # input_directory_corona_cases = 'csse_covid_19_data\csse_covid_19_time_series'
-    # us_or_global = 'US'
-    # case_types = ['deaths','confirmed','recovered']
 
     try:
         content = us_or_global.lower()
@@ -268,16 +307,15 @@ def read_cases_data(
             case_types.remove('recovered')
             pass                    
 
-    print('pulling data for:', us_or_global)
+    print('This is where the data is pulled for each case type included for:', us_or_global, '\n')
     for i in range(len(case_types)):
+        print('---------------------------------------------')
+        print('---------------------------------------------')
+        print('CASE TYPE:', case_types[i], '\n')
 
         #read in the data from the forked directory
         file_name = 'time_series_covid19_' + case_types[i] + '_' + us_or_global + '.csv'
         temp_df = pd.read_csv(input_directory_corona_cases + '\\' + file_name)
-
-        print('---------------------------------------------')
-        print('\n', 'sample printout of', case_types[i], 'in', us_or_global)
-        print(temp_df.dtypes, '\n')
 
         #Grab and merge the populations from the 'deaths' file, use it to 
         # populate populations in other files
@@ -289,13 +327,14 @@ def read_cases_data(
                 temp_population_lookup,
                 how='left',
                 on='Combined_Key',
-                validate="many_to_one")
+                validate='many_to_one'
+                )
 
         #prior to adding a prefix and generating a lat_long_id, fix column names
         # based on known discrepancies
         column_rename = {
-            'Long_': 'Long',
-            'Country/Region': 'Country_Region',
+            "Long_": 'Long', 
+            'Country/Region': 'Country_Region', 
             'Province/State': 'Province_State'
             }
         temp_df.rename(
@@ -307,11 +346,9 @@ def read_cases_data(
         temp_column_names = list(temp_df.columns)
         temp_column_names_is_not_date_df = pd.DataFrame(
             {'columnName': [None], 'columnIsDate': [None]})
-
         for j in range(len(temp_column_names)):
             isValidDate = None
             temp_column_names_is_not_date_df.at[j, 'columnName'] = temp_column_names[j]
-
             try:
                 result = datetime.datetime.strptime( temp_column_names[j], '%m/%d/%y')
             except Exception as e:
@@ -322,8 +359,7 @@ def read_cases_data(
         #Filter list of columns to non-date column names to assist with melt
         temp_column_names_is_not_date_list = temp_column_names_is_not_date_df['columnName'][
             temp_column_names_is_not_date_df['columnIsDate'] == False].to_list()
-        print('---------------------------------------------')
-        print('Columns which will be used to melt the data frame')
+        print('List of non-date columns which will be used to melt the data frame (wide to long):')
         print(temp_column_names_is_not_date_list)
         print('\n')
 
@@ -343,80 +379,47 @@ def read_cases_data(
         #find the max date and add it to the dataframe
         temp_df_melted['max_date'] = max(temp_df_melted['date'])
 
-
-        #Add all aggregation columns to a list so they can be used throughout
-        # the function and in its return values
-        print('-------------')
-        print('-------------')
-        print('BEFORE APPEND')
-        print('temp_column_names_is_not_date_list')
-        print(temp_column_names_is_not_date_list)
-        print('------')
-        print('this is case type')
-        print(case_types[i])
-        temp_column_names_is_not_date_list = temp_column_names_is_not_date_list + [case_types[i]] + ['date', 'max_date']
-        print('AFER APPEND')
-        print('temp_column_names_is_not_date_list')
-        print('-------------')
-        print('-------------')
-        print('\n')
-
-        print('-----')
-        print('this is temp_column_names_is_not_date_list')
-        print('temp_column_names_is_not_date_list')
-        print('\n')
-
-        print('-----')
-        print('this is case_types')
-        print(case_types)
-        print('\n')
-
-        #check for missing columns
-        if temp_column_names_is_not_date_list is None:
-            temp_column_names_is_not_date_list = []
+        #Add all columns to a list so they can be used throughout the function 
+        # and in its return values.  Then, identify missing columns and finally
+        # add the missing columns to the dataframe, using 0 as a fill value
+        # TODO: Can't get reindex to work.  Using indexing and fillna() instead.
+        temp_column_names_to_check_for_missing = temp_column_names_is_not_date_list + \
+            [case_types[i]] + ['date', 'max_date']
+        if temp_column_names_to_check_for_missing is None:
+            temp_column_names_to_check_for_missing = []
         temp_missing_columns = list(
-            set(case_types) - set(temp_column_names_is_not_date_list))
-        
-        print('-----------------')
-        print('these are the temp_missing_columns')
-        print(temp_missing_columns)
-        print('\n')
-
-
-        #Fill NAs for metrics. can't make reindex work as expected, so using 
-        # indexing and fillna() to attempt to fill NA's for metrics with the 
-        # input value
+            set(case_types) - set(temp_column_names_to_check_for_missing))
         print('---------')
-        print('these are the columns that currently exist')
+        print('these are the columns present after melting\n')
         print(temp_df_melted.dtypes)
-        print('these are the columns that will be added')
+        print('\nthese are the columns that will be added')
         print(temp_missing_columns)
         print('\n')
         temp_df_melted = temp_df_melted.reindex(
             columns=temp_df_melted.columns.tolist() + temp_missing_columns,
             fill_value=0)
 
-
         #union dataframes
         if i == 0:
             print('---------')
-            print('these are the first iterations set of columns')
+            print('these are the final columns for iteration', i+1, '\n')
             print(temp_df_melted.dtypes)
+            print('\n')
             temp_dfs_melted_unioned = temp_df_melted
         else:
             print('---------')
-            print('these are the --', i, '-- iteration columns')
-            print('\n')
+            print('these are the final columns for iteration', i+1, '\n')
             print(temp_df_melted.dtypes)
-            print('attempting to join with')
+            print('\n')
+            print('attempting to concatenate with\n')
             print(temp_dfs_melted_unioned.dtypes)
+            print('\n')
             temp_dfs_melted_unioned = pd.concat(
                 [temp_dfs_melted_unioned, temp_df_melted], ignore_index=True)
 
-        
     #identify the aggregation columns
-    temp_dfs_melted_uniioned_aggregation_columns = list(set(
-        temp_column_names_is_not_date_list) - set(case_types))
+    temp_column_names_for_aggregation = list(set(
+        temp_dfs_melted_unioned.columns) - set(case_types))
 
     #aggregate case types based on the aggregation columns idetnifided
     #TODO -- clean up the 'global' vs. 'us' files prior to transforming or 
@@ -424,14 +427,14 @@ def read_cases_data(
     # types available
     if us_or_global.lower() == 'global':
         temp_dfs_melted_unioned_aggregated = temp_dfs_melted_unioned.groupby(
-            temp_dfs_melted_uniioned_aggregation_columns
+            temp_column_names_for_aggregation
         ).agg(recovered=('recovered', 'sum'),
                 confirmed=('confirmed', 'sum'),
                 deaths=('deaths', 'sum')
                 ).reset_index()
     if us_or_global.lower() == 'us':
         temp_dfs_melted_unioned_aggregated = temp_dfs_melted_unioned.groupby(
-            temp_dfs_melted_uniioned_aggregation_columns
+            temp_column_names_for_aggregation
             ).agg(
                 confirmed=('confirmed','sum'), 
                 deaths=('deaths', 'sum')
@@ -445,12 +448,12 @@ def read_cases_data(
     temp_dfs_melted_unioned_aggregated = temp_dfs_melted_unioned_aggregated.add_prefix(
         'cases_')
 
-    temp_dfs_melted_uniioned_aggregation_columns = [
-        'cases_' + item for item in temp_dfs_melted_uniioned_aggregation_columns]
+    temp_column_names_for_aggregation = [
+        'cases_' + item for item in temp_column_names_for_aggregation]
 
     return {
         'df_cases_data': temp_dfs_melted_unioned_aggregated,
-        'list_cases_data_dimension_columns': temp_dfs_melted_uniioned_aggregation_columns
+        'list_cases_data_dimension_columns': temp_column_names_for_aggregation
         }
 
 
@@ -461,7 +464,21 @@ def read_cases_data(
 def add_flag_for_n_cases_date(
         cases_dataframe, 
         n_list, 
-        case_types=['deaths', 'confirmed', 'recovered']):
+        value_columns_list=['cases_confirmed'],
+        case_types=['cases_deaths', 'cases_confirmed', 'cases_recovered']):
+
+    print('ADDING FLAG FOR COUNT OF DAYS SINCE THE FOLLOWING CONFIRMED CASE NUMBERS:')
+    print(n_list)
+    print('\n')
+    print('Input data frame:', '\n')
+    print(cases_dataframe)
+    print('\n')
+
+    #Apply a count for dates partitioned based on once n cases have been
+    # reached for every combination of dimensions apart from date and
+    # case_types
+    temp_groupby_columns_for_counts_lat_long = list(
+        set(cases_dataframe.columns)-set(case_types)-set(['cases_date']))# + [column_n_or_more_value_cases_by_country_flag]
 
     for i in range(len(n_list)):
         while True:
@@ -475,50 +492,54 @@ def add_flag_for_n_cases_date(
             except TypeError:
                 print("must be a list of integers")
                 break
-        #apply a true/false flag based on whether n cases have been reached
-        column_n_or_more_confirmed_cases_by_country = i_str + \
-            '_or_more_confirmed_cases_by_country'
-        cases_dataframe[column_n_or_more_confirmed_cases_by_country] = np.where(
-            cases_dataframe.cases_confirmed >= i_int, 
-            True, 
-            False
-            )
 
-        #Apply a count for dates partitioned based on once n cases have been 
-        # reached for every combination of dimensions apart from date and
-        # case_types
-        temp_groupby_columns_for_counts_lat_long = list(
-            set(cases_dataframe.columns)-set(case_types)-set(['cases_date'])) + [column_n_or_more_confirmed_cases_by_country]
+        for value_column in value_columns_list:
+            print('-----------')
+            print('Value column:', value_column)
+            print('\n')
 
-        print('------------------------------')
-        print('this is the temp_groupby_columns_for_counts_lat_long which will \
-        be used to do the rank calculation')
-        print(temp_groupby_columns_for_counts_lat_long)
-        print('\n')
+            #apply a true/false flag based on whether n cases have been reached
+            column_n_or_more_value_cases_by_country_flag = i_str + '_or_more_' + value_column + '_cases_by_country'
+            cases_dataframe[column_n_or_more_value_cases_by_country_flag] = np.where(
+                cases_dataframe[value_column] >= i_int,
+                True, 
+                False)
 
-        column_n_or_more_confirmed_cases_by_country_day_count = i_str + \
-            '_or_more_confirmed_cases_by_country_day_count'
+            print('-----------------')
+            print('-----------------')
+            print('-----------------')
+            print('this is the temp_groupby_columns_for_counts_lat_long which will be used to do the rank calculation', '\n')
+            print('COLUMN COUNT:', len(temp_groupby_columns_for_counts_lat_long))
+            [print(column) for column in temp_groupby_columns_for_counts_lat_long]
+            print('\n')
 
-        print('Prior to doing the group by and .rank() calculation, this is the group by df \
-        that is used to do the rank calculation....')
-        print(cases_dataframe)
-        cases_dataframe.to_csv('__cases_dataframe.csv')
-        print('\n')
+            column_n_or_more_value_cases_by_country_day_count = i_str + '_or_more_' + value_column + '_cases_by_country_day_count'
 
-        print('After doing the grpoup by and before doing the .rank() calculation, \
-            this is the group by df that is used to do the rank calculation....')
-        tempdf = cases_dataframe.groupby(
-            temp_groupby_columns_for_counts_lat_long)['cases_date']
-        print(tempdf)
-        print('\n')
+            print('-----------------')
+            print('-----------------')
+            print('-----------------')
+            print('Prior to doing the group by and .rank() calculation, this is the df that is used to do the grouping.' '\n')
+            print(cases_dataframe.head(25).to_string)
+            cases_dataframe.to_csv('__cases_dataframe.csv')
+            print('\n')
 
-        cases_dataframe[column_n_or_more_confirmed_cases_by_country_day_count] = cases_dataframe.groupby(
-            temp_groupby_columns_for_counts_lat_long)['cases_date'].rank(method='dense')
-        
-        #if n cases have not been reached, remove any counts created from the previous statement
-        cases_dataframe.loc[
-            getattr(cases_dataframe, column_n_or_more_confirmed_cases_by_country) == False,
-            column_n_or_more_confirmed_cases_by_country_day_count
-            ] = None
+            print('-----------------')
+            print('-----------------')
+            print('-----------------')
+            print('After doing the group by and before doing the .rank() calculation, this is the group by df that is used to do the rank calculation.', '\n')
+            tempdf = cases_dataframe.groupby(
+                temp_groupby_columns_for_counts_lat_long)['cases_date']
+            print(tempdf.head(25).to_string)
+            print('\n')
+            
+            #Apply rank to the data frame using the column name indicated, and 
+            # then finally, if n cases have not been reached remove any counts 
+            # created
+            cases_dataframe[column_n_or_more_value_cases_by_country_day_count] = cases_dataframe.groupby(
+                temp_groupby_columns_for_counts_lat_long)[value_column].rank(method='dense').astype(int)
+            cases_dataframe.loc[
+                getattr(cases_dataframe, column_n_or_more_value_cases_by_country_flag) == False,
+                column_n_or_more_value_cases_by_country_day_count
+                ] = None
 
     return cases_dataframe
