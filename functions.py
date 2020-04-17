@@ -52,7 +52,7 @@ def distance_between_coordinates(lat1, lon1, lat2, lon2):
 
 def add_row_to_population_lookup(
     population_lookup_df, cca2, Country, pop2020, dropdownData, area, GrowthRate
-):
+    ):
     '''Function to add a row to an existing population lookup table.  First, 
         create the data frame, then do any calculations, say world percentage,
         rank, population density, then create the output df which is the 
@@ -463,7 +463,7 @@ def read_cases_data(
 #Name of output file
 def add_flag_for_n_cases_date(
         cases_dataframe, 
-        n_list, 
+        n_list=[10, 25, 100, 1000], 
         value_columns_list=['cases_confirmed'],
         case_types=['cases_deaths', 'cases_confirmed', 'cases_recovered']):
 
@@ -478,7 +478,7 @@ def add_flag_for_n_cases_date(
     # reached for every combination of dimensions apart from date and
     # case_types
     temp_groupby_columns_for_counts_lat_long = list(
-        set(cases_dataframe.columns)-set(case_types)-set(['cases_date']))# + [column_n_or_more_value_cases_by_country_flag]
+        set(cases_dataframe.columns)-set(case_types)-set(['cases_date']))
 
     for i in range(len(n_list)):
         while True:
